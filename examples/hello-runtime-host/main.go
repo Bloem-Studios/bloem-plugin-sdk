@@ -52,7 +52,7 @@ func (s *scheduledTaskServer) Run(ctx context.Context, _ *pluginv1.RunScheduledT
 }
 
 func main() {
-	logger := hclog.New(&hclog.LoggerOptions{Name: "hello-runtime-host"})
+	logger := hclog.New(&hclog.LoggerOptions{Name: "vondel-hello-runtime-host"})
 
 	manifest, err := loadManifest()
 	if err != nil {

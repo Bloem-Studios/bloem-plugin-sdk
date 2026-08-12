@@ -1,5 +1,5 @@
 {
-  "plugin_id": "example.hello-task",
+  "plugin_id": "vondel.example.hello-task",
   "version": "0.1.0",
   "checksum": "__CHECKSUM__",
   "silo_api_version": "v1",
@@ -7,7 +7,7 @@
     {
       "type": "scheduled_task.v1",
       "id": "hello",
-      "display_name": "Hello Task",
+      "display_name": "Vondel Hello Task",
       "description": "A minimal scheduled task example."
     }
   ]
