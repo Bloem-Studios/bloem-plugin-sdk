@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ github.sha }}
 
       - uses: actions/setup-go@v5
         with:
@@ -29,6 +29,37 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Verify remote tag still identifies the tested commit
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          if ! remote_refs="$(git ls-remote origin \
+            "refs/tags/${TAG_NAME}" "refs/tags/${TAG_NAME}^{}")"; then
+            printf 'release guard failed: unable to resolve tag %s\n' \
+              "$TAG_NAME" >&2
+            exit 1
+          fi
+          remote_sha="$(
+            printf '%s\n' "$remote_refs" | awk '
+              /\^\{\}$/ { peeled = $1 }
+              !/\^\{\}$/ { direct = $1 }
+              END {
+                if (peeled != "") print peeled
+                else print direct
+              }
+            '
+          )"
+          test "$remote_sha" = "$EXPECTED_SHA" || {
+            printf 'release guard failed: tag %s resolves to %s, expected %s\n' \
+              "$TAG_NAME" "${remote_sha:-missing}" "$EXPECTED_SHA" >&2
+            exit 1
+          }
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
