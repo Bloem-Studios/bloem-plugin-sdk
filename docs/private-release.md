@@ -31,7 +31,9 @@ test "$(gh api repos/Vondel-Media/vondel-plugin-sdk --jq '.visibility')" = priva
 if release_lookup="$(gh api --include "repos/Vondel-Media/vondel-plugin-sdk/releases/tags/$RELEASE_TAG" 2>&1)"; then
   echo "release $RELEASE_TAG already exists" >&2
   exit 1
-elif [[ "$release_lookup" != *"HTTP 404"* ]]; then
+fi
+release_http_status="$(printf '%s\n' "$release_lookup" | awk 'NR == 1 && $1 ~ /^HTTP\/[0-9.]+$/ && $2 ~ /^[0-9][0-9][0-9]$/ { print $2 }')"
+if [[ "$release_http_status" != 404 ]]; then
   printf 'unable to prove release tag is unused:\n%s\n' "$release_lookup" >&2
   exit 1
 fi
