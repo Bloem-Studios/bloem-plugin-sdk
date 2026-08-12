@@ -16,6 +16,11 @@ jobs:
         with:
           go-version: '1.26'
 
+      - name: Install ripgrep
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes ripgrep
+
       - run: ./scripts/verify-private-release.sh
       - run: GOWORK=off go test ./...
       - run: GOWORK=off go build ./examples/hello-scheduled-task

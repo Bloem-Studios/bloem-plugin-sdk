@@ -2,7 +2,8 @@
 set -eu
 
 guard=./scripts/verify-private-release.sh
-workflow=.github/workflows/release.yml
+ci_workflow=.github/workflows/ci.yml
+release_workflow=.github/workflows/release.yml
 
 fail() {
   printf 'private release test failed: %s\n' "$1" >&2
@@ -31,12 +32,31 @@ make_scan_path() {
 }
 
 test_workflow_sha_pin() {
-  grep -Fq 'ref: ${{ github.sha }}' "$workflow" ||
+  grep -Fq 'ref: ${{ github.sha }}' "$release_workflow" ||
     fail "release checkout is not pinned to the event SHA"
-  grep -Fq 'git ls-remote origin' "$workflow" ||
+  grep -Fq 'git ls-remote origin' "$release_workflow" ||
     fail "release does not resolve the remote tag"
-  grep -Fq 'test "$remote_sha" = "$EXPECTED_SHA"' "$workflow" ||
+  grep -Fq 'test "$remote_sha" = "$EXPECTED_SHA"' "$release_workflow" ||
     fail "release does not compare the remote tag with the event SHA"
+}
+
+test_workflow_rg_provisioning() {
+  for workflow_path in "$ci_workflow" "$release_workflow"; do
+    if ! awk '
+      /^  [[:alnum:]_-]+:$/ { rg_ready = 0 }
+      /sudo apt-get install --yes ripgrep/ { rg_ready = 1 }
+      /- run: \.\/scripts\/verify-private-release\.sh/ {
+        guard_count++
+        if (!rg_ready) missing = 1
+      }
+      END {
+        if (missing) exit 1
+        if (guard_count == 0) exit 2
+      }
+    ' "$workflow_path"; then
+      fail "$workflow_path does not provide rg before every private release guard"
+    fi
+  done
 }
 
 test_missing_rg() {
@@ -62,10 +82,12 @@ trap 'rm -rf "$test_root"' EXIT HUP INT TERM
 
 case ${1:-all} in
   workflow) test_workflow_sha_pin ;;
+  workflow-rg) test_workflow_rg_provisioning ;;
   missing-rg) test_missing_rg ;;
   rg-error) test_rg_error ;;
   all)
     test_workflow_sha_pin
+    test_workflow_rg_provisioning
     test_missing_rg
     test_rg_error
     test_clean_guard
