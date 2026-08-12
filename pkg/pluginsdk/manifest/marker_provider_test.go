@@ -3,7 +3,7 @@ package manifest_test
 import (
 	"testing"
 
-	"github.com/Silo-Server/silo-plugin-sdk/pkg/pluginsdk/manifest"
+	"github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/manifest"
 )
 
 func TestLoadAcceptsMarkerProviderCapability(t *testing.T) {

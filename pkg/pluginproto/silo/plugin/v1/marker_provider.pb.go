@@ -695,7 +695,7 @@ const file_silo_plugin_v1_marker_provider_proto_rawDesc = "" +
 	"\x0eMarkerProvider\x12Y\n" +
 	"\fFetchMarkers\x12#.silo.plugin.v1.FetchMarkersRequest\x1a$.silo.plugin.v1.FetchMarkersResponse\x12Y\n" +
 	"\fSubmitMarker\x12#.silo.plugin.v1.SubmitMarkerRequest\x1a$.silo.plugin.v1.SubmitMarkerResponse\x12t\n" +
-	"\x16GetMarkerProviderStats\x12-.silo.plugin.v1.GetMarkerProviderStatsRequest\x1a+.silo.plugin.v1.MarkerProviderStatsResponseBPZNgithub.com/Silo-Server/silo-plugin-sdk/pkg/pluginproto/silo/plugin/v1;pluginv1b\x06proto3"
+	"\x16GetMarkerProviderStats\x12-.silo.plugin.v1.GetMarkerProviderStatsRequest\x1a+.silo.plugin.v1.MarkerProviderStatsResponseBSZQgithub.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1;pluginv1b\x06proto3"
 
 var (
 	file_silo_plugin_v1_marker_provider_proto_rawDescOnce sync.Once

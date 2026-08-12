@@ -129,7 +129,7 @@ const file_silo_plugin_v1_scheduled_task_proto_rawDesc = "" +
 	"\x18RunScheduledTaskResponse\x12/\n" +
 	"\x06output\x18\x01 \x01(\v2\x17.google.protobuf.StructR\x06output2i\n" +
 	"\rScheduledTask\x12X\n" +
-	"\x03Run\x12'.silo.plugin.v1.RunScheduledTaskRequest\x1a(.silo.plugin.v1.RunScheduledTaskResponseBPZNgithub.com/Silo-Server/silo-plugin-sdk/pkg/pluginproto/silo/plugin/v1;pluginv1b\x06proto3"
+	"\x03Run\x12'.silo.plugin.v1.RunScheduledTaskRequest\x1a(.silo.plugin.v1.RunScheduledTaskResponseBSZQgithub.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1;pluginv1b\x06proto3"
 
 var (
 	file_silo_plugin_v1_scheduled_task_proto_rawDescOnce sync.Once

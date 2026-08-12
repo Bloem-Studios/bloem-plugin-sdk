@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package silo.plugin.v1;
 
-option go_package = "github.com/Silo-Server/silo-plugin-sdk/pkg/pluginproto/silo/plugin/v1;pluginv1";
+option go_package = "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1;pluginv1";
 
 // ScanSource lets the host pull changed filesystem paths from a provider
 // (e.g. Sonarr/Radarr, inotify, Ceph). Pull only: the host owns the timer,

@@ -1,19 +1,24 @@
-# silo-plugin-sdk
+# vondel-plugin-sdk
 
-Public Go SDK for building Silo plugins. **Not a runtime plugin** — this is a library that plugin authors depend on via `go.mod`.
+Private Vondel Go SDK for authoring plugins. **Not a runtime plugin** — this is
+a library that plugin authors depend on via `go.mod`. Plugins built with this
+SDK target both Vondel and compatible official Silo servers.
 
-`silo-plugin-sdk` is the source of truth for the plugin authoring contract. First-party consumers (Silo host, `silo-plugin-tmdb`, `silo-plugin-metadb`, every other plugin in this repo) pin tagged semver releases. Local multi-repo workspaces may use `go.work` or a temporary `replace`, but CI and release builds resolve the SDK from a published module tag.
+`vondel-plugin-sdk` is Vondel's source of truth for the plugin authoring
+contract. Vondel hosts and plugins pin tagged semver releases. Local multi-repo
+workspaces may use `go.work` or a temporary `replace`, but CI and release builds
+resolve the SDK from a published module tag.
 
 ## Packages
 
-- `github.com/Silo-Server/silo-plugin-sdk/pkg/pluginproto/silo/plugin/v1` — generated protobuf code.
-- `github.com/Silo-Server/silo-plugin-sdk/pkg/pluginsdk/capability` — stable capability type constants for manifests and peer discovery.
-- `github.com/Silo-Server/silo-plugin-sdk/pkg/pluginsdk/config` — config-schema helpers.
-- `github.com/Silo-Server/silo-plugin-sdk/pkg/pluginsdk/convert` — type conversions.
-- `github.com/Silo-Server/silo-plugin-sdk/pkg/pluginsdk/manifest` — manifest loading/rendering.
-- `github.com/Silo-Server/silo-plugin-sdk/pkg/pluginsdk/runtime` — `manifest` subcommand + `Runtime` server scaffolding.
-- `github.com/Silo-Server/silo-plugin-sdk/pkg/pluginsdk/runtimedefault` — default `Runtime` implementation with `BindHostBroker` already wired; embed it to skip boilerplate.
-- `github.com/Silo-Server/silo-plugin-sdk/pkg/pluginsdk/runtimehost` — typed client for the host's `RuntimeHost` service, including event publishing, host info, catalog browsing, installed-plugin discovery, scoped streams, plugin-to-plugin HTTP calls, and plugin-owned config writes.
+- `github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1` — generated protobuf code.
+- `github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/capability` — stable capability type constants for manifests and peer discovery.
+- `github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/config` — config-schema helpers.
+- `github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/convert` — type conversions.
+- `github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/manifest` — manifest loading/rendering.
+- `github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/runtime` — `manifest` subcommand + `Runtime` server scaffolding.
+- `github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/runtimedefault` — default `Runtime` implementation with `BindHostBroker` already wired; embed it to skip boilerplate.
+- `github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/runtimehost` — typed client for the host's `RuntimeHost` service, including event publishing, host info, catalog browsing, installed-plugin discovery, scoped streams, plugin-to-plugin HTTP calls, and plugin-owned config writes.
 
 ## Capability families
 
@@ -233,3 +238,9 @@ go test ./...
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE).
+
+## Upstream attribution
+
+This project is an independent fork of
+[Silo Plugin SDK](https://github.com/Silo-Server/silo-plugin-sdk). See
+[NOTICE](NOTICE) for the upstream version, revision, and affiliation statement.

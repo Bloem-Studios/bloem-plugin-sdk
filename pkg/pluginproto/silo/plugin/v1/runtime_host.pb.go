@@ -2164,7 +2164,7 @@ const file_silo_plugin_v1_runtime_host_proto_rawDesc = "" +
 	"\x0fGetCatalogStats\x12&.silo.plugin.v1.GetCatalogStatsRequest\x1a'.silo.plugin.v1.GetCatalogStatsResponse\x12z\n" +
 	"\x17ResolveCatalogImageURLs\x12..silo.plugin.v1.ResolveCatalogImageURLsRequest\x1a/.silo.plugin.v1.ResolveCatalogImageURLsResponse\x12e\n" +
 	"\x10MintScopedStream\x12'.silo.plugin.v1.MintScopedStreamRequest\x1a(.silo.plugin.v1.MintScopedStreamResponse\x12_\n" +
-	"\x0eCallPluginHTTP\x12%.silo.plugin.v1.CallPluginHTTPRequest\x1a&.silo.plugin.v1.CallPluginHTTPResponseBPZNgithub.com/Silo-Server/silo-plugin-sdk/pkg/pluginproto/silo/plugin/v1;pluginv1b\x06proto3"
+	"\x0eCallPluginHTTP\x12%.silo.plugin.v1.CallPluginHTTPRequest\x1a&.silo.plugin.v1.CallPluginHTTPResponseBSZQgithub.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1;pluginv1b\x06proto3"
 
 var (
 	file_silo_plugin_v1_runtime_host_proto_rawDescOnce sync.Once

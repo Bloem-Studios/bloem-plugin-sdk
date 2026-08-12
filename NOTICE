@@ -1,0 +1,14 @@
+Vondel Plugin SDK
+=================
+
+This project is an independent fork of Silo Plugin SDK v0.13.2, upstream
+revision 1ad0fe54408e99d35e6aee86c489a0edd528f6b2, from
+https://github.com/Silo-Server/silo-plugin-sdk.
+
+The source remains licensed under Apache-2.0. Existing copyright and license
+notices are retained. Vondel changes the project/module identity, documentation,
+examples, compatibility verification, and private release automation while
+preserving the v1 plugin wire contract.
+
+Vondel is not affiliated with or endorsed by Silo Media L.L.C. References to
+Silo identify the upstream project or compatibility interfaces.

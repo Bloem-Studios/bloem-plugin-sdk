@@ -2,9 +2,13 @@
 
 ## Scope
 
-`silo-plugin-sdk` is the public build-time contract for Go plugin authors.
+`vondel-plugin-sdk` is the private Vondel build-time contract for Go plugin
+authors. Its plugins target Vondel and compatible official Silo servers through
+the preserved v1 wire contract.
 
-This repository is released as a semver-governed Go module. Third-party plugins and first-party consumers should depend on tagged releases, not on sibling repo checkouts or workspace-only overrides.
+This repository is released privately as a semver-governed Go module. Vondel
+plugins and first-party consumers should depend on tagged releases, not on
+sibling repo checkouts or workspace-only overrides.
 
 The compatibility boundary includes:
 
@@ -25,19 +29,20 @@ The compatibility boundary includes:
 
 ## Consumer Rules
 
-- `Silo`, `silo-plugin-tvdb`, and `silo-plugin-tmdb` should pin released SDK tags in `go.mod`.
+- Vondel hosts and plugins should pin released SDK tags in `go.mod`.
 - CI and release pipelines should build with `GOWORK=off` and without checking out this repo as a sibling source dependency.
 - Local `go.work` files and temporary `replace` directives are acceptable for development, but they must not be committed as the release path.
 
 ## Runtime Compatibility
 
-- `silo_api_version` is the coarse runtime compatibility gate between Silo and a plugin binary.
+- `silo_api_version` is the preserved coarse runtime compatibility gate between
+  a Vondel or compatible official Silo host and a plugin binary.
 - Host installs should reject incompatible API versions before runtime startup.
 - A plugin binary should return the same manifest shape that Silo installs, except that binaries may compute their checksum dynamically at runtime.
 
 ## Go Support
 
-The supported public authoring path today is Go-only.
+The supported Vondel authoring path today is Go-only.
 
 The protobuf and gRPC contracts are the long-term compatibility source of truth, but non-Go authoring is not an official support target in this release.
 

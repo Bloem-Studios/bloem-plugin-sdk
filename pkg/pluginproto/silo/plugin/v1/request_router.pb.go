@@ -1230,7 +1230,7 @@ const file_silo_plugin_v1_request_router_proto_rawDesc = "" +
 	"\vCheckStatus\x12\".silo.plugin.v1.CheckStatusRequest\x1a#.silo.plugin.v1.CheckStatusResponse\x12h\n" +
 	"\x11ListConfigOptions\x12(.silo.plugin.v1.ListConfigOptionsRequest\x1a).silo.plugin.v1.ListConfigOptionsResponse\x12_\n" +
 	"\x0eTestConnection\x12%.silo.plugin.v1.TestConnectionRequest\x1a&.silo.plugin.v1.TestConnectionResponse\x12M\n" +
-	"\bValidate\x12\x1f.silo.plugin.v1.ValidateRequest\x1a .silo.plugin.v1.ValidateResponseBPZNgithub.com/Silo-Server/silo-plugin-sdk/pkg/pluginproto/silo/plugin/v1;pluginv1b\x06proto3"
+	"\bValidate\x12\x1f.silo.plugin.v1.ValidateRequest\x1a .silo.plugin.v1.ValidateResponseBSZQgithub.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1;pluginv1b\x06proto3"
 
 var (
 	file_silo_plugin_v1_request_router_proto_rawDescOnce sync.Once

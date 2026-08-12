@@ -3,8 +3,8 @@ package convert_test
 import (
 	"testing"
 
-	pluginv1 "github.com/Silo-Server/silo-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
-	"github.com/Silo-Server/silo-plugin-sdk/pkg/pluginsdk/convert"
+	pluginv1 "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
+	"github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/convert"
 )
 
 func TestWatchSyncProviderDescriptorRoundTrip(t *testing.T) {

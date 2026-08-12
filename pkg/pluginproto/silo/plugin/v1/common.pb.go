@@ -1742,7 +1742,7 @@ const file_silo_plugin_v1_common_proto_rawDesc = "" +
 	"\aRuntime\x12V\n" +
 	"\vGetManifest\x12\".silo.plugin.v1.GetManifestRequest\x1a#.silo.plugin.v1.GetManifestResponse\x12P\n" +
 	"\tConfigure\x12 .silo.plugin.v1.ConfigureRequest\x1a!.silo.plugin.v1.ConfigureResponse\x12_\n" +
-	"\x0eBindHostBroker\x12%.silo.plugin.v1.BindHostBrokerRequest\x1a&.silo.plugin.v1.BindHostBrokerResponseBPZNgithub.com/Silo-Server/silo-plugin-sdk/pkg/pluginproto/silo/plugin/v1;pluginv1b\x06proto3"
+	"\x0eBindHostBroker\x12%.silo.plugin.v1.BindHostBrokerRequest\x1a&.silo.plugin.v1.BindHostBrokerResponseBSZQgithub.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1;pluginv1b\x06proto3"
 
 var (
 	file_silo_plugin_v1_common_proto_rawDescOnce sync.Once

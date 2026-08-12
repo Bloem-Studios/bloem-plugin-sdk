@@ -12,9 +12,9 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/types/known/structpb"
 
-	pluginv1 "github.com/Silo-Server/silo-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
-	"github.com/Silo-Server/silo-plugin-sdk/pkg/pluginsdk/capability"
-	"github.com/Silo-Server/silo-plugin-sdk/pkg/pluginsdk/runtimehost"
+	pluginv1 "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
+	"github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/capability"
+	"github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/runtimehost"
 )
 
 type fakeServer struct {

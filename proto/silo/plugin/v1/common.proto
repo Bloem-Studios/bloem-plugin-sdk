@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package silo.plugin.v1;
 
-option go_package = "github.com/Silo-Server/silo-plugin-sdk/pkg/pluginproto/silo/plugin/v1;pluginv1";
+option go_package = "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1;pluginv1";
 
 import "google/protobuf/struct.proto";
 import "silo/plugin/v1/watch_sync_provider.proto";

@@ -3,8 +3,8 @@ package runtime_test
 import (
 	"testing"
 
-	pluginv1 "github.com/Silo-Server/silo-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
-	runtime "github.com/Silo-Server/silo-plugin-sdk/pkg/pluginsdk/runtime"
+	pluginv1 "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
+	runtime "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/runtime"
 	"github.com/hashicorp/go-plugin"
 	"google.golang.org/grpc"
 )

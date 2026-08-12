@@ -1,4 +1,4 @@
-module github.com/Silo-Server/silo-plugin-sdk
+module github.com/Vondel-Media/vondel-plugin-sdk
 
 go 1.26.0
 

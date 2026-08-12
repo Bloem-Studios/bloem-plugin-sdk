@@ -13,8 +13,8 @@ import (
 
 	"google.golang.org/protobuf/encoding/protojson"
 
-	pluginv1 "github.com/Silo-Server/silo-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
-	"github.com/Silo-Server/silo-plugin-sdk/pkg/pluginsdk/capability"
+	pluginv1 "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
+	"github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/capability"
 )
 
 // knownCapabilityTypes is the set of capability type strings recognised by

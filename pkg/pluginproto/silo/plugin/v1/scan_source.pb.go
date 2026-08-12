@@ -365,7 +365,7 @@ const file_silo_plugin_v1_scan_source_proto_rawDesc = "" +
 	" SCAN_SOURCE_CHANGE_SCOPE_SUBTREE\x10\x032d\n" +
 	"\n" +
 	"ScanSource\x12V\n" +
-	"\vPollChanges\x12\".silo.plugin.v1.PollChangesRequest\x1a#.silo.plugin.v1.PollChangesResponseBPZNgithub.com/Silo-Server/silo-plugin-sdk/pkg/pluginproto/silo/plugin/v1;pluginv1b\x06proto3"
+	"\vPollChanges\x12\".silo.plugin.v1.PollChangesRequest\x1a#.silo.plugin.v1.PollChangesResponseBSZQgithub.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1;pluginv1b\x06proto3"
 
 var (
 	file_silo_plugin_v1_scan_source_proto_rawDescOnce sync.Once

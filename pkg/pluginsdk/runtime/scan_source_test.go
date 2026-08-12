@@ -4,15 +4,17 @@ import (
 	"context"
 	"testing"
 
-	pluginv1 "github.com/Silo-Server/silo-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
-	runtime "github.com/Silo-Server/silo-plugin-sdk/pkg/pluginsdk/runtime"
+	pluginv1 "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
+	runtime "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/runtime"
 	"google.golang.org/grpc"
 )
 
 // stubRuntime satisfies the required Runtime server (GRPCServer rejects a nil
 // Runtime) via the generated forward-compatible stub, so no method holds a nil
 // embedded interface.
-type stubRuntime struct{ pluginv1.UnimplementedRuntimeServer }
+type stubRuntime struct {
+	pluginv1.UnimplementedRuntimeServer
+}
 
 type stubScanSource struct{}
 

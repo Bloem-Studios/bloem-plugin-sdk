@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/Silo-Server/silo-plugin-sdk/pkg/pluginsdk/manifest"
+	"github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/manifest"
 )
 
 func TestLoadAcceptsRequestRouterCapability(t *testing.T) {

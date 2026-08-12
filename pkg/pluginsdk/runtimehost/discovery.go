@@ -3,7 +3,7 @@ package runtimehost
 import (
 	"context"
 
-	pluginv1 "github.com/Silo-Server/silo-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
+	pluginv1 "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
 )
 
 func (c *Client) ListInstalledPluginsByCapability(ctx context.Context, capabilityType string) ([]*pluginv1.InstalledPlugin, error) {

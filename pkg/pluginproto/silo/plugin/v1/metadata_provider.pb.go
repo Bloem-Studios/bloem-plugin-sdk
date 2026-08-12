@@ -2277,7 +2277,7 @@ const file_silo_plugin_v1_metadata_provider_proto_rawDesc = "" +
 	"\x10ResolveImageURLs\x12'.silo.plugin.v1.ResolveImageURLsRequest\x1a(.silo.plugin.v1.ResolveImageURLsResponse2\xda\x01\n" +
 	"\rImageResolver\x12b\n" +
 	"\x0fResolveImageURL\x12&.silo.plugin.v1.ResolveImageURLRequest\x1a'.silo.plugin.v1.ResolveImageURLResponse\x12e\n" +
-	"\x10ResolveImageURLs\x12'.silo.plugin.v1.ResolveImageURLsRequest\x1a(.silo.plugin.v1.ResolveImageURLsResponseBPZNgithub.com/Silo-Server/silo-plugin-sdk/pkg/pluginproto/silo/plugin/v1;pluginv1b\x06proto3"
+	"\x10ResolveImageURLs\x12'.silo.plugin.v1.ResolveImageURLsRequest\x1a(.silo.plugin.v1.ResolveImageURLsResponseBSZQgithub.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1;pluginv1b\x06proto3"
 
 var (
 	file_silo_plugin_v1_metadata_provider_proto_rawDescOnce sync.Once
