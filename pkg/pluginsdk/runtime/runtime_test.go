@@ -11,9 +11,17 @@ func TestRuntimeBootstrapCompiles(t *testing.T) {
 	t.Helper()
 
 	_ = runtime.ProtocolVersion
-	_ = runtime.HandshakeConfig()
 	_ = runtime.ServeConfig{}
 	_ = &pluginv1.PluginManifest{}
+}
+
+func TestHandshakeConfigUsesPublishedContract(t *testing.T) {
+	config := runtime.HandshakeConfig()
+	if config.ProtocolVersion != runtime.ProtocolVersion ||
+		config.MagicCookieKey != runtime.MagicCookieKey ||
+		config.MagicCookieValue != runtime.MagicCookieValue {
+		t.Fatalf("HandshakeConfig() = %#v, want published runtime constants", config)
+	}
 }
 
 func TestHost_NilWhenBrokerUnset(t *testing.T) {
