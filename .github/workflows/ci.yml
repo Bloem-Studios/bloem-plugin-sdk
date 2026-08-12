@@ -16,11 +16,7 @@ jobs:
         with:
           go-version: '1.26'
 
-      - name: Run tests
-        run: go test ./...
-
-      - name: Build example plugin
-        run: go build ./examples/hello-scheduled-task
-
-      - name: Build hello-runtime-host example
-        run: go build ./examples/hello-runtime-host
+      - run: ./scripts/verify-private-release.sh
+      - run: GOWORK=off go test ./...
+      - run: GOWORK=off go build ./examples/hello-scheduled-task
+      - run: GOWORK=off go build ./examples/hello-runtime-host
