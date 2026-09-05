@@ -1,13 +1,111 @@
-# vondel-plugin-sdk
+# Bloem Plugin SDK
 
-Private Vondel Go SDK for authoring plugins. **Not a runtime plugin** — this is
-a library that plugin authors depend on via `go.mod`. Plugins built with this
-SDK target both Vondel and compatible official Silo servers.
+The private Go library for writing Bloem server plugins. **Not a runtime plugin** — this is
+a library that plugin authors depend on via `go.mod`. It gives a plugin author the generated
+protobuf and gRPC code for every capability a Bloem server understands, helpers to load and
+validate a `manifest.json`, a `Serve` function that turns a Go program into a process the server
+can launch and talk to, and a typed client for calling back into the server. Plugins built with
+this SDK target Bloem servers and compatible upstream Silo servers through the same v1 wire
+contract. It is for plugin authors, and for the maintainer who keeps the contract stable and
+cuts releases.
 
-`vondel-plugin-sdk` is Vondel's source of truth for the plugin authoring
-contract. Vondel hosts and plugins pin tagged semver releases. Local multi-repo
-workspaces may use `go.work` or a temporary `replace`, but CI and release builds
-resolve the SDK from a published module tag.
+This repository is Bloem's source of truth for the plugin authoring contract. Bloem hosts and
+plugins pin tagged semver releases. Local multi-repo workspaces may use `go.work` or a temporary
+`replace`, but CI and release builds resolve the SDK from a published module tag.
+
+A few identifiers keep spellings from the project's origins because servers and plugins already
+speak them: the Go module path `github.com/Vondel-Media/vondel-plugin-sdk`, the protobuf package
+`silo.plugin.v1`, the manifest field `silo_api_version` and the handshake cookie
+`SILO_PLUGIN=silo-rpc-plugin-v1`. They are pinned by guard tests and must be typed exactly as shown.
+
+## Features
+
+**Authoring**
+
+- `ServeManifest` (short path): embed `manifest.json`, pass a version and your capability servers, and the SDK loads, validates, stamps the checksum and serves; `Serve` (long path) for full control.
+- A `manifest` subcommand on every plugin binary that prints the manifest with the real checksum and exits, so a server can introspect a plugin without launching it.
+- Self-describing binaries: the SHA-256 of the running executable is computed at start-up and written into the manifest, so a package is installable without external repository state.
+- `runtimedefault`: an embeddable `Runtime` server with `BindHostBroker` already wired.
+- New gRPC services are added through `ServeManifestOption` values (for example `WithWatchSyncDeviceAuthorization`), never by changing the `CapabilityServers` shape, so plugins written for v0.12 keep compiling.
+- Two complete example plugins (`hello-scheduled-task`, `hello-runtime-host`) and a compat probe that proves a server can launch an SDK-built binary.
+
+**Manifest and settings**
+
+- Manifest loading, validation and checksum stamping (`manifest` package); unknown JSON keys are ignored on load.
+- Presentation block rules for catalog-ready plugins and `ValidateCatalogPresentation` for catalog tooling.
+- HTTP route and asset registration for plugins that serve pages.
+- Settings declared as JSON Schema (draft 2020-12) in `config_schema`, validated by the `config` package before the server accepts a value; `secret` fields are stored encrypted by the server.
+- `convert` helpers between capability descriptors and plain Go maps for hosts that store capabilities in a database.
+
+**Capabilities (thirteen known types)**
+
+- Metadata: `metadata_provider.v1` (search, details, seasons, episodes, images, people, image URL resolution) and `image_resolver.v1`.
+- Playback markers: `marker_provider.v1` (external intro/credits/recap/preview segments) and `media_analyzer.v1` (local file analysis).
+- Host integration: `scheduled_task.v1`, `event_consumer.v1`, `http_routes.v1` (with per-route `access` levels enforced by the server), `auth_provider.v1` (password and OAuth/OIDC login).
+- Media pipeline: `request_router.v1`, `scan_source.v1` (Autoscan change sources), `watch_sync_provider.v1` (external watch-history sync with device-code authorization).
+- `audiobook_backend.v1` and `ebook_backend.v1` as constants only; no service definition ships in this SDK. There is no subtitle capability.
+
+**Calling back into the server (`runtimehost`)**
+
+- Events: `PublishEvent`, `PublishEventTo`, `PublishEventToInstallation`; the server prefixes every name with `plugin.<plugin_id>.` so a plugin cannot forge a core event.
+- Host and catalog reads: `GetHostInfo`, `ListLibraries`, `CheckMediaPresence`, `ListLibraryMedia`, `GetCatalogStats`, `ResolveCatalogImageURLs` — public-safe rows only.
+- Peer discovery and plugin-to-plugin HTTP: `ListInstalledPlugins`, `CallPluginHTTP`, with `ListInstalledPluginsByCapability` and `CallPluginJSON` helpers.
+- `MintScopedStream` for short-lived, narrowly scoped stream grants, and `SetGlobalConfigEntry` for plugin-owned configuration.
+- `runtime.Host()` caches one client on the single broker stream the server listens on.
+
+**Contract stability and release engineering**
+
+- Guard tests lock the wire contract, proto sources, module path, `NOTICE` attribution, example identities and the `CapabilityServers` field order; a failing guard means revert, not "fix the test".
+- `buf` lint and breaking-change rules on the proto module; generated code is committed so authors never run the generator.
+- Semver policy: additive API, proto field, capability family or `RuntimeHost` RPC is a minor; compatible fix or docs is a patch; any breaking change to `v1` is a major.
+- Private-release guard (`scripts/verify-private-release.sh`) runs in CI and at release: module path, no `replace`, no public publication path in workflows, no absolute home-directory paths or credential-bearing URLs anywhere in the repository, documentation included.
+- Release workflow on `v*` tags re-tests the exact SHA, refuses a moved tag, and creates a private GitHub Release; repository visibility never changes and nothing goes to a public registry.
+- `httpclient`: a small outbound JSON client for plugins that talk to a third-party API with an `X-Api-Key` header.
+
+## Quick start
+
+Your first plugin in five steps (Go 1.26, Git, and a Bloem server you may install plugins on;
+the full walkthrough is in the [User Guide](docs/user-guide.md#2-your-first-plugin)).
+
+1. **Create the module and add the SDK.** The repository is private, so your Git credentials must
+   be able to read it; set `GOPRIVATE=github.com/Vondel-Media` if Go tries the public proxy.
+
+   ```sh
+   mkdir hello-plugin && cd hello-plugin
+   go mod init example.com/hello-plugin
+   go get github.com/Vondel-Media/vondel-plugin-sdk@v0.13.3
+   ```
+
+2. **Write `manifest.json`** with `plugin_id`, `version`, `"checksum": "__CHECKSUM__"`,
+   `"silo_api_version": "v1"`, `supported_platforms` (required by the server) and one capability,
+   for example `scheduled_task.v1`.
+
+3. **Write `main.go`**: embed the manifest, implement the capability server, and call
+   `sdkruntime.ServeManifest(manifestJSON, version, sdkruntime.CapabilityServers{ScheduledTask: helloTask{}})`.
+   `ServeManifest` loads and validates the manifest, sets the version, stamps the checksum, serves
+   a default `Runtime` service alongside your servers, and never returns.
+
+4. **Build and inspect.**
+
+   ```sh
+   GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath \
+     -ldflags "-s -w -X main.version=0.1.0" -o plugin .
+   ./plugin manifest        # prints the manifest with the real checksum
+   ```
+
+5. **Package and install.** The package is a zip with `manifest.json` and an executable named
+   exactly `plugin` at the root; upload it to the server's admin API.
+
+   ```sh
+   ./plugin manifest > manifest.json
+   zip plugin.zip manifest.json plugin
+   curl -X POST "https://bloem.example/api/v1/admin/plugins/uploads" \
+     -H "Authorization: Bearer $BLOEM_ADMIN_TOKEN" \
+     -F archive=@plugin.zip
+   ```
+
+   The server verifies the checksum, unpacks the package, starts the process and calls
+   `Configure`; the plugin appears in **Admin → Plugins**.
 
 ## Packages
 
@@ -19,12 +117,14 @@ resolve the SDK from a published module tag.
 - `github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/runtime` — `manifest` subcommand + `Runtime` server scaffolding.
 - `github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/runtimedefault` — default `Runtime` implementation with `BindHostBroker` already wired; embed it to skip boilerplate.
 - `github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/runtimehost` — typed client for the host's `RuntimeHost` service, including event publishing, host info, catalog browsing, installed-plugin discovery, scoped streams, plugin-to-plugin HTTP calls, and plugin-owned config writes.
+- `github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/httpclient` — small outbound JSON HTTP client for plugins that talk to a third-party API with an `X-Api-Key` header.
 
 ## Capability families
 
 The SDK ships protobuf contracts for every capability the host understands:
 
 - `metadata_provider.v1`
+- `image_resolver.v1`
 - `marker_provider.v1`
 - `media_analyzer.v1`
 - `scheduled_task.v1`
@@ -34,10 +134,10 @@ The SDK ships protobuf contracts for every capability the host understands:
 - `request_router.v1`
 - `scan_source.v1`
 - `watch_sync_provider.v1`
-- `audiobook_backend.v1`
-- `ebook_backend.v1`
+- `audiobook_backend.v1` (constant only; no service definition ships in this SDK)
+- `ebook_backend.v1` (constant only; no service definition ships in this SDK)
 
-Plugins implement one or more, advertise them in `manifest.json`, and serve them over gRPC.
+Plugins implement one or more, advertise them in `manifest.json`, and serve them over gRPC. A manifest that names any other type fails validation with `unknown type`.
 
 ## Author workflow
 
@@ -46,13 +146,13 @@ A typical plugin:
 1. Defines a `manifest.json` using the protobuf-derived schema.
 2. Exposes a `Runtime` gRPC server plus one or more capability servers.
 3. Supports the `manifest` subcommand via `pkg/pluginsdk/runtime` so the host can introspect manifests without launching the plugin.
-4. Is installed either from a catalog or by uploading a trusted binary to a Silo server.
+4. Is installed either from a catalog or by uploading a trusted package to a Bloem server.
 
 For a minimal self-describing plugin, see [`examples/hello-scheduled-task`](examples/hello-scheduled-task). For a plugin that calls back into the host via `RuntimeHost` (publishing events, listing libraries), see [`examples/hello-runtime-host`](examples/hello-runtime-host).
 
 ## Operator-facing presentation
 
-`PluginManifest.presentation` gives the Silo admin UI typed, plugin-level copy
+`PluginManifest.presentation` gives the Bloem admin UI typed, plugin-level copy
 and canonical links. It is optional for backward compatibility, but cataloged
 plugins should provide a complete block:
 
@@ -64,11 +164,11 @@ plugins should provide a complete block:
     "description_markdown": "A longer description of what the plugin does and when to use it.",
     "setup_markdown": "1. Install the plugin.\n2. Add the required connection.\n3. Enable it for the relevant library.",
     "homepage_url": "https://example.com/plugin",
-    "source_url": "https://github.com/Silo-Server/example-plugin",
-    "support_url": "https://github.com/Silo-Server/example-plugin/issues",
-    "changelog_url": "https://github.com/Silo-Server/example-plugin/releases",
-    "publisher_name": "Silo",
-    "publisher_url": "https://github.com/Silo-Server",
+    "source_url": "https://github.com/example-org/example-plugin",
+    "support_url": "https://github.com/example-org/example-plugin/issues",
+    "changelog_url": "https://github.com/example-org/example-plugin/releases",
+    "publisher_name": "Example Org",
+    "publisher_url": "https://github.com/example-org",
     "license_spdx": "AGPL-3.0-or-later"
   }
 }
@@ -129,7 +229,7 @@ The `auth_provider.v1` capability also exposes OAuth-flow RPCs (`InitAuthorize`,
 
 ## Watch sync providers
 
-`watch_sync_provider.v1` lets external plugins participate in Silo's host-owned
+`watch_sync_provider.v1` lets external plugins participate in the server's host-owned
 watch-provider pipeline. The host owns encrypted per-profile credentials,
 authorization-code and device-code flow state, durable desired-state events,
 retries, ordering, and reconciliation. Plugins are stateless protocol adapters:
@@ -212,7 +312,7 @@ keys as transient secrets and avoid logging them without redaction.
 
 ## Self-describing binaries
 
-Direct binary upload works best when the plugin embeds a manifest template and computes its own executable checksum at runtime before returning `Runtime.GetManifest`. That keeps the plugin installable without requiring a checked-out Silo repository or a sibling `manifest.json` file at upload time. The example plugin shows the pattern.
+Direct binary upload works best when the plugin embeds a manifest template and computes its own executable checksum at runtime before returning `Runtime.GetManifest`. That keeps the plugin installable without requiring a checked-out server repository or a sibling `manifest.json` file at upload time. The example plugin shows the pattern.
 
 ## Compatibility
 
@@ -231,9 +331,19 @@ Before downstream repos stop using local workspace overrides, the required SDK c
 ## Build & test
 
 ```bash
-make proto       # regenerate protobuf code (uses locally vendored buf under ./bin/)
-go test ./...
+GOWORK=off go test ./...             # what CI runs; make test runs it without GOWORK=off
+make proto                           # regenerate protobuf code (needs protoc; installs buf and the generators under ./bin/)
+./scripts/verify-private-release.sh  # the private-release guard (needs ripgrep); run before committing docs too
+./scripts/build-compat-probe.sh      # dist/compat-probe + checksum + manifest for a server smoke test
 ```
+
+## Documentation
+
+- [docs/admin-guide.md](docs/admin-guide.md) — for the SDK maintainer and server operator: repository layout, building and regenerating protobuf code, the guard tests, CI and the release workflow, versioning, plugin packaging and installation, the process and security model, troubleshooting.
+- [docs/user-guide.md](docs/user-guide.md) — for plugin authors: from an empty directory to an installed plugin, then the reference for the manifest, settings, every capability, the host client, helpers, testing, packaging and versioning.
+- [docs/compatibility.md](docs/compatibility.md) — the compatibility boundary and versioning rules for the SDK and its consumers.
+- [docs/private-release.md](docs/private-release.md) — the step-by-step private release and rollback procedure.
+- [docs/runtime-host.md](docs/runtime-host.md) — the `RuntimeHost.v1` RPC reference.
 
 ## License
 
