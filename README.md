@@ -1,6 +1,6 @@
 # Bloem Plugin SDK
 
-The private Go library for writing Bloem server plugins. **Not a runtime plugin** — this is
+The Go library for writing Bloem server plugins. **Not a runtime plugin** — this is
 a library that plugin authors depend on via `go.mod`. It gives a plugin author the generated
 protobuf and gRPC code for every capability a Bloem server understands, helpers to load and
 validate a `manifest.json`, a `Serve` function that turns a Go program into a process the server
@@ -59,7 +59,7 @@ speak them: the Go module path `github.com/Bloem-Studios/bloem-plugin-sdk`, the 
 - `buf` lint and breaking-change rules on the proto module; generated code is committed so authors never run the generator.
 - Semver policy: additive API, proto field, capability family or `RuntimeHost` RPC is a minor; compatible fix or docs is a patch; any breaking change to `v1` is a major.
 - Private-release guard (`scripts/verify-private-release.sh`) runs in CI and at release: module path, no `replace`, no public publication path in workflows, no absolute home-directory paths or credential-bearing URLs anywhere in the repository, documentation included.
-- Release workflow on `v*` tags re-tests the exact SHA, refuses a moved tag, and creates a private GitHub Release; repository visibility never changes and nothing goes to a public registry.
+- Release workflow on `v*` tags re-tests the exact SHA, refuses a moved tag, and creates a GitHub Release. The repository is public (Apache-2.0); Go fetches tagged versions through the public module proxy, and nothing is pushed to any other registry.
 - `httpclient`: a small outbound JSON client for plugins that talk to a third-party API with an `X-Api-Key` header.
 
 ## Quick start
@@ -67,8 +67,8 @@ speak them: the Go module path `github.com/Bloem-Studios/bloem-plugin-sdk`, the 
 Your first plugin in five steps (Go 1.26, Git, and a Bloem server you may install plugins on;
 the full walkthrough is in the [User Guide](docs/user-guide.md#2-your-first-plugin)).
 
-1. **Create the module and add the SDK.** The repository is private, so your Git credentials must
-   be able to read it; set `GOPRIVATE=github.com/Bloem-Studios` if Go tries the public proxy.
+1. **Create the module and add the SDK.** The repository is public, so `go get` works without
+   credentials or `GOPRIVATE`.
 
    ```sh
    mkdir hello-plugin && cd hello-plugin
