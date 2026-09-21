@@ -37,12 +37,12 @@ speak them: the Go module path `github.com/Bloem-Studios/bloem-plugin-sdk`, the 
 - Settings declared as JSON Schema (draft 2020-12) in `config_schema`, validated by the `config` package before the server accepts a value; `secret` fields are stored encrypted by the server.
 - `convert` helpers between capability descriptors and plain Go maps for hosts that store capabilities in a database.
 
-**Capabilities (thirteen known types)**
+**Capabilities (fourteen known types)**
 
 - Metadata: `metadata_provider.v1` (search, details, seasons, episodes, images, people, image URL resolution) and `image_resolver.v1`.
 - Playback markers: `marker_provider.v1` (external intro/credits/recap/preview segments) and `media_analyzer.v1` (local file analysis).
 - Host integration: `scheduled_task.v1`, `event_consumer.v1`, `http_routes.v1` (with per-route `access` levels enforced by the server), `auth_provider.v1` (password and OAuth/OIDC login).
-- Media pipeline: `request_router.v1`, `scan_source.v1` (Autoscan change sources), `watch_sync_provider.v1` (external watch-history sync with device-code authorization).
+- Media pipeline: `request_router.v1`, `scan_source.v1` (Autoscan change sources), `watch_sync_provider.v1` (external watch-history sync with device-code authorization), `network_access_provider.v1`.
 - `audiobook_backend.v1` and `ebook_backend.v1` as constants only; no service definition ships in this SDK. There is no subtitle capability.
 
 **Calling back into the server (`runtimehost`)**
@@ -73,7 +73,7 @@ the full walkthrough is in the [User Guide](docs/user-guide.md#2-your-first-plug
    ```sh
    mkdir hello-plugin && cd hello-plugin
    go mod init example.com/hello-plugin
-   go get github.com/Bloem-Studios/bloem-plugin-sdk@v0.13.3
+   go get github.com/Bloem-Studios/bloem-plugin-sdk@v0.16.1
    ```
 
 2. **Write `manifest.json`** with `plugin_id`, `version`, `"checksum": "__CHECKSUM__"`,
@@ -113,6 +113,8 @@ the full walkthrough is in the [User Guide](docs/user-guide.md#2-your-first-plug
 - `github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/capability` — stable capability type constants for manifests and peer discovery.
 - `github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/config` — config-schema helpers.
 - `github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/convert` — type conversions.
+- `github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/httpclient` — credentialed JSON-over-HTTP client with bounded responses and typed status errors.
+- `github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/imagevariant` — canonical image-size variant strings.
 - `github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/manifest` — manifest loading/rendering.
 - `github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/runtime` — `manifest` subcommand + `Runtime` server scaffolding.
 - `github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/runtimedefault` — default `Runtime` implementation with `BindHostBroker` already wired; embed it to skip boilerplate.
@@ -127,6 +129,7 @@ The SDK ships protobuf contracts for every capability the host understands:
 - `image_resolver.v1`
 - `marker_provider.v1`
 - `media_analyzer.v1`
+- `image_resolver.v1`
 - `scheduled_task.v1`
 - `event_consumer.v1`
 - `auth_provider.v1`
@@ -134,6 +137,7 @@ The SDK ships protobuf contracts for every capability the host understands:
 - `request_router.v1`
 - `scan_source.v1`
 - `watch_sync_provider.v1`
+- `network_access_provider.v1`
 - `audiobook_backend.v1` (constant only; no service definition ships in this SDK)
 - `ebook_backend.v1` (constant only; no service definition ships in this SDK)
 
@@ -148,7 +152,7 @@ A typical plugin:
 3. Supports the `manifest` subcommand via `pkg/pluginsdk/runtime` so the host can introspect manifests without launching the plugin.
 4. Is installed either from a catalog or by uploading a trusted package to a Bloem server.
 
-For a minimal self-describing plugin, see [`examples/hello-scheduled-task`](examples/hello-scheduled-task). For a plugin that calls back into the host via `RuntimeHost` (publishing events, listing libraries), see [`examples/hello-runtime-host`](examples/hello-runtime-host).
+For a minimal self-describing plugin, see [`examples/hello-scheduled-task`](examples/hello-scheduled-task). For a plugin that calls back into the host via `RuntimeHost` (publishing events, listing libraries), see [`examples/hello-runtime-host`](examples/hello-runtime-host). For a stub overlay-network provider, see [`examples/hello-network-access`](examples/hello-network-access).
 
 ## Operator-facing presentation
 
@@ -243,6 +247,10 @@ convergent desired-state updates rather than increments. That rule also applies
 to scrobble stops: replaying the same event ID must not create another play.
 For playback events, `completed` is the host's authoritative watched decision;
 plugins must not infer completion from `watch_history_id` or percentage alone.
+Metadata consumers must likewise check optional `season_number` presence: zero
+means Specials, while absence means no season scope. See
+[compatibility guidance](docs/compatibility.md#presence-sensitive-optional-fields)
+for the request and record rules.
 
 Authenticated RPCs receive the same host-owned capability, configuration, and
 credential data through `WatchSyncAuthenticatedContext`. The context exists
@@ -297,6 +305,16 @@ returned to the host. When
 and the order of returned watchlist states is the remote list order. Event
 `list_position` is presence-aware: an explicit zero means the first position,
 while omission means no requested ordering.
+
+## Network access providers
+
+`network_access_provider.v1` lets a resident plugin give the deployment an
+overlay-network identity (Tailscale, NetBird) and reverse-proxy overlay
+traffic to the host's local listeners. The host starts these plugins at boot,
+restarts them on crash, stores their per-instance state encrypted, and
+aggregates status across the API server and proxy nodes. See
+[docs/network-access-provider.md](docs/network-access-provider.md) for the
+proxy contract, `GetHostInfo` fields, instance state, and enrollment rules.
 
 ## Scan sources
 

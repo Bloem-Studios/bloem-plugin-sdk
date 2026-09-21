@@ -11,7 +11,7 @@ calling into the plugin, the plugin calls back into the host.
 | `PublishEvent(name, payload)` | Publish onto the host's event bus. The host stamps `plugin.<plugin_id>.` in front of `name` server-side. |
 | `PublishEventTo(target_plugin_id, name, payload)` | Publish an event addressed to one installed plugin by stable `plugin_id`. |
 | `PublishEventToInstallation(target_installation_id, name, payload)` | Publish an event addressed to one specific plugin installation. |
-| `GetHostInfo()` | Return public-safe host URLs for callbacks and plugin-served links. |
+| `GetHostInfo()` | Return public-safe host URLs for callbacks and plugin-served links, plus host role, listeners, and the ingress token for network access providers. |
 | `ListLibraries(user_id)` | Return libraries (optionally scoped to a user). |
 | `CheckMediaPresence(provider, media_type, ids)` | Batched lookup: which external IDs already exist in the host catalog. v1 supports provider="tmdb" only. |
 | `ListInstalledPlugins()` | Return installed plugins and their advertised capabilities. |
@@ -21,6 +21,9 @@ calling into the plugin, the plugin calls back into the host.
 | `ResolveCatalogImageURLs(paths, variant)` | Resolve stored catalog image paths into host-generated browser URL targets. |
 | `MintScopedStream(request)` | Mint a short-lived stream grant for plugin-owned public access workflows. |
 | `CallPluginHTTP(request)` | Invoke another installed plugin's HTTP route through the host control plane. |
+| `ReadInstanceState(key)` | Read one key of the calling instance's encrypted, host-scoped state. |
+| `WriteInstanceState(key, value)` | Write one key of that state. Key ≤ 256 bytes, value ≤ 256 KiB, ≤ 256 keys per scope. |
+| `ReportNetworkAccessStatus(status)` | Push a `network_access_provider.v1` status change so the host does not poll. |
 
 ## Using it from a plugin
 
@@ -109,7 +112,9 @@ Catalog image fields are host-owned opaque paths. Pass poster or backdrop paths
 back unchanged to resolve them into browser targets:
 
 ```go
-urls, err := host.ResolveCatalogImageURLs(ctx, []string{item.PosterURL, item.BackdropURL}, "thumbnail")
+import "github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/imagevariant"
+
+urls, err := host.ResolveCatalogImageURLs(ctx, []string{item.PosterURL, item.BackdropURL}, imagevariant.Card)
 if err != nil { return }
 posterURL := urls[item.PosterURL]
 ```
@@ -117,6 +122,28 @@ posterURL := urls[item.PosterURL]
 Pass an empty variant to use the host default. Unresolved paths are omitted from
 the returned map, which is keyed by the original input path. Treat returned URLs
 as opaque host-generated browser targets.
+
+### Image variants
+
+The variant is a semantic size hint, not an exact pixel contract. The canonical
+vocabulary, smallest to largest, is exported as constants from
+`pkg/pluginsdk/imagevariant`:
+
+| Constant | Value | Intended surface |
+| --- | --- | --- |
+| `imagevariant.Card` | `card` | grid and list thumbnails, search results, cast rows (~300px posters) |
+| `imagevariant.Featured` | `featured` | hero artwork, detail pages, section headers (~500px posters/logos, ~1280px backdrops) |
+| `imagevariant.Large` | `large` | high-density displays and client-selected larger sizes (~780px posters/stills, ~1280px logos/backdrops) |
+| `imagevariant.Full` | `full` | full-screen and near-source rendering |
+| `imagevariant.Original` | `original` | unresized source asset |
+
+`large` was added after the initial vocabulary; the set is open and may grow
+again. A plugin that resolves variants itself (for example a metadata provider
+implementing `ResolveImageURL` / `ResolveImageURLs`) must treat an unknown
+variant as a request for its nearest supported size — or its default — and must
+never return an error. Implement the mapping as a `switch` with a `default` arm
+so new variants fall through to a sensible size instead of failing a resolve,
+which users see as a missing poster.
 
 ### Peer discovery and calls
 
