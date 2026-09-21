@@ -9,9 +9,9 @@ import (
 	"os"
 	goruntime "runtime"
 
-	pluginv1 "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
-	publicmanifest "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/manifest"
-	sdkruntime "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/runtime"
+	pluginv1 "github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
+	publicmanifest "github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/manifest"
+	sdkruntime "github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/runtime"
 )
 
 //go:embed manifest.json

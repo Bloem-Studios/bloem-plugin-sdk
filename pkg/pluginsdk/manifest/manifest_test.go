@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/manifest"
+	"github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/manifest"
 )
 
 func TestLoadAcceptsRequestRouterCapability(t *testing.T) {

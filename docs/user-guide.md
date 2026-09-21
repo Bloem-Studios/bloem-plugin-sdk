@@ -49,7 +49,7 @@ Three facts shape everything below.
    can call the server back through the *runtime host* client (for example to publish an event or
    list libraries).
 
-One naming note. The Go import path of the SDK is `github.com/Vondel-Media/vondel-plugin-sdk`, the
+One naming note. The Go import path of the SDK is `github.com/Bloem-Studios/bloem-plugin-sdk`, the
 protobuf package is `silo.plugin.v1`, and the manifest's API-version field is `silo_api_version`.
 These spellings predate the Bloem name and are frozen because servers and plugins already speak them.
 Type them exactly as shown.
@@ -63,12 +63,12 @@ Type them exactly as shown.
 ```sh
 mkdir hello-plugin && cd hello-plugin
 go mod init example.com/hello-plugin
-go get github.com/Vondel-Media/vondel-plugin-sdk@v0.13.3
+go get github.com/Bloem-Studios/bloem-plugin-sdk@v0.13.3
 ```
 
 Pin a released tag (`v0.13.3` is the first verified release; use the newest one your server
 supports). The repository is private, so your Git credentials must be able to read it; set
-`GOPRIVATE=github.com/Vondel-Media` if Go tries the public proxy.
+`GOPRIVATE=github.com/Bloem-Studios` if Go tries the public proxy.
 
 ### 2.2 Write the manifest
 
@@ -107,8 +107,8 @@ import (
     "context"
     _ "embed"
 
-    pluginv1 "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
-    sdkruntime "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/runtime"
+    pluginv1 "github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
+    sdkruntime "github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/runtime"
 )
 
 // version is set at build time with -ldflags "-X main.version=1.2.3".

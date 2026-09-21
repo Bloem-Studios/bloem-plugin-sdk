@@ -1,5 +1,5 @@
 {
-  "plugin_id": "vondel.example.runtime-host",
+  "plugin_id": "bloem.example.runtime-host",
   "version": "0.1.0",
   "checksum": "__CHECKSUM__",
   "silo_api_version": "v1",
@@ -7,7 +7,7 @@
     {
       "type": "scheduled_task.v1",
       "id": "ping",
-      "display_name": "Vondel Ping",
+      "display_name": "Bloem Ping",
       "description": "Publishes a hello event each run via RuntimeHost."
     }
   ]

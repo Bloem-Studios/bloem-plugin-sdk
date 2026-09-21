@@ -233,7 +233,7 @@ const file_silo_plugin_v1_media_analyzer_proto_rawDesc = "" +
 	"confidence\x123\n" +
 	"\bmetadata\x18\x04 \x01(\v2\x17.google.protobuf.StructR\bmetadata2e\n" +
 	"\rMediaAnalyzer\x12T\n" +
-	"\aAnalyze\x12#.silo.plugin.v1.AnalyzeMediaRequest\x1a$.silo.plugin.v1.AnalyzeMediaResponseBSZQgithub.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1;pluginv1b\x06proto3"
+	"\aAnalyze\x12#.silo.plugin.v1.AnalyzeMediaRequest\x1a$.silo.plugin.v1.AnalyzeMediaResponseBSZQgithub.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginproto/silo/plugin/v1;pluginv1b\x06proto3"
 
 var (
 	file_silo_plugin_v1_media_analyzer_proto_rawDescOnce sync.Once

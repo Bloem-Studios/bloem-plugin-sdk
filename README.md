@@ -14,7 +14,7 @@ plugins pin tagged semver releases. Local multi-repo workspaces may use `go.work
 `replace`, but CI and release builds resolve the SDK from a published module tag.
 
 A few identifiers keep spellings from the project's origins because servers and plugins already
-speak them: the Go module path `github.com/Vondel-Media/vondel-plugin-sdk`, the protobuf package
+speak them: the Go module path `github.com/Bloem-Studios/bloem-plugin-sdk`, the protobuf package
 `silo.plugin.v1`, the manifest field `silo_api_version` and the handshake cookie
 `SILO_PLUGIN=silo-rpc-plugin-v1`. They are pinned by guard tests and must be typed exactly as shown.
 
@@ -68,12 +68,12 @@ Your first plugin in five steps (Go 1.26, Git, and a Bloem server you may instal
 the full walkthrough is in the [User Guide](docs/user-guide.md#2-your-first-plugin)).
 
 1. **Create the module and add the SDK.** The repository is private, so your Git credentials must
-   be able to read it; set `GOPRIVATE=github.com/Vondel-Media` if Go tries the public proxy.
+   be able to read it; set `GOPRIVATE=github.com/Bloem-Studios` if Go tries the public proxy.
 
    ```sh
    mkdir hello-plugin && cd hello-plugin
    go mod init example.com/hello-plugin
-   go get github.com/Vondel-Media/vondel-plugin-sdk@v0.13.3
+   go get github.com/Bloem-Studios/bloem-plugin-sdk@v0.13.3
    ```
 
 2. **Write `manifest.json`** with `plugin_id`, `version`, `"checksum": "__CHECKSUM__"`,
@@ -109,15 +109,15 @@ the full walkthrough is in the [User Guide](docs/user-guide.md#2-your-first-plug
 
 ## Packages
 
-- `github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1` — generated protobuf code.
-- `github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/capability` — stable capability type constants for manifests and peer discovery.
-- `github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/config` — config-schema helpers.
-- `github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/convert` — type conversions.
-- `github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/manifest` — manifest loading/rendering.
-- `github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/runtime` — `manifest` subcommand + `Runtime` server scaffolding.
-- `github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/runtimedefault` — default `Runtime` implementation with `BindHostBroker` already wired; embed it to skip boilerplate.
-- `github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/runtimehost` — typed client for the host's `RuntimeHost` service, including event publishing, host info, catalog browsing, installed-plugin discovery, scoped streams, plugin-to-plugin HTTP calls, and plugin-owned config writes.
-- `github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/httpclient` — small outbound JSON HTTP client for plugins that talk to a third-party API with an `X-Api-Key` header.
+- `github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginproto/silo/plugin/v1` — generated protobuf code.
+- `github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/capability` — stable capability type constants for manifests and peer discovery.
+- `github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/config` — config-schema helpers.
+- `github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/convert` — type conversions.
+- `github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/manifest` — manifest loading/rendering.
+- `github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/runtime` — `manifest` subcommand + `Runtime` server scaffolding.
+- `github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/runtimedefault` — default `Runtime` implementation with `BindHostBroker` already wired; embed it to skip boilerplate.
+- `github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/runtimehost` — typed client for the host's `RuntimeHost` service, including event publishing, host info, catalog browsing, installed-plugin discovery, scoped streams, plugin-to-plugin HTTP calls, and plugin-owned config writes.
+- `github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/httpclient` — small outbound JSON HTTP client for plugins that talk to a third-party API with an `X-Api-Key` header.
 
 ## Capability families
 

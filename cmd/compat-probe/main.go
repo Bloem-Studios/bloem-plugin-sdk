@@ -4,8 +4,8 @@ import (
 	"context"
 	_ "embed"
 
-	pluginv1 "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
-	sdkruntime "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/runtime"
+	pluginv1 "github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
+	sdkruntime "github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/runtime"
 )
 
 const version = "0.13.2"

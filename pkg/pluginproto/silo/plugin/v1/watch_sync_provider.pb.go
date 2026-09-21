@@ -2970,7 +2970,7 @@ const file_silo_plugin_v1_watch_sync_provider_proto_rawDesc = "" +
 	"\x0fListRemoteState\x12/.silo.plugin.v1.WatchSyncListRemoteStateRequest\x1a0.silo.plugin.v1.WatchSyncListRemoteStateResponse2\xbc\x02\n" +
 	"#WatchSyncDeviceAuthorizationService\x12\x8a\x01\n" +
 	"\x05Start\x12?.silo.plugin.v1.WatchSyncDeviceAuthorizationServiceStartRequest\x1a@.silo.plugin.v1.WatchSyncDeviceAuthorizationServiceStartResponse\x12\x87\x01\n" +
-	"\x04Poll\x12>.silo.plugin.v1.WatchSyncDeviceAuthorizationServicePollRequest\x1a?.silo.plugin.v1.WatchSyncDeviceAuthorizationServicePollResponseBSZQgithub.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1;pluginv1b\x06proto3"
+	"\x04Poll\x12>.silo.plugin.v1.WatchSyncDeviceAuthorizationServicePollRequest\x1a?.silo.plugin.v1.WatchSyncDeviceAuthorizationServicePollResponseBSZQgithub.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginproto/silo/plugin/v1;pluginv1b\x06proto3"
 
 var (
 	file_silo_plugin_v1_watch_sync_provider_proto_rawDescOnce sync.Once

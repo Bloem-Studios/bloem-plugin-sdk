@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	pluginv1 "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
+	pluginv1 "github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
 )
 
 // Compile-time: manifestRuntime satisfies the Runtime server contract.

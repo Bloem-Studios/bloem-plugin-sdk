@@ -1,4 +1,4 @@
-module github.com/Vondel-Media/vondel-plugin-sdk
+module github.com/Bloem-Studios/bloem-plugin-sdk
 
 go 1.26.0
 

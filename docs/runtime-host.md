@@ -1,6 +1,6 @@
 # RuntimeHost.v1
 
-`RuntimeHost.v1` is the gRPC service a Vondel or compatible official Silo host
+`RuntimeHost.v1` is the gRPC service a Bloem or compatible official Silo host
 exposes to plugins. It inverts the usual capability flow: instead of the host
 calling into the plugin, the plugin calls back into the host.
 
@@ -36,9 +36,9 @@ plugin's `Runtime` server:
 import (
     "context"
 
-    pluginv1 "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
-    sdkruntime "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/runtime"
-    "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/runtimedefault"
+    pluginv1 "github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
+    sdkruntime "github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/runtime"
+    "github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/runtimedefault"
 )
 
 type runtimeServer struct {
@@ -125,8 +125,8 @@ when finding another plugin:
 
 ```go
 import (
-    "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/capability"
-    "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/runtimehost"
+    "github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/capability"
+    "github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/runtimehost"
 )
 
 plugins, err := host.ListInstalledPluginsByCapability(ctx, capability.RequestRouter)

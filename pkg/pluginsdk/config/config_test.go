@@ -3,9 +3,9 @@ package config_test
 import (
 	"testing"
 
-	pluginv1 "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
-	"github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/config"
-	publicmanifest "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/manifest"
+	pluginv1 "github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
+	"github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/config"
+	publicmanifest "github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/manifest"
 )
 
 func TestValidateManifestGlobalValue(t *testing.T) {

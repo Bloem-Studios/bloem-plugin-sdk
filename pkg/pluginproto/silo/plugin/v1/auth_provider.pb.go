@@ -424,7 +424,7 @@ const file_silo_plugin_v1_auth_provider_proto_rawDesc = "" +
 	"\fAuthenticate\x12#.silo.plugin.v1.AuthenticateRequest\x1a$.silo.plugin.v1.AuthenticateResponse\x12\\\n" +
 	"\rInitAuthorize\x12$.silo.plugin.v1.InitAuthorizeRequest\x1a%.silo.plugin.v1.InitAuthorizeResponse\x12Y\n" +
 	"\fExchangeCode\x12#.silo.plugin.v1.ExchangeCodeRequest\x1a$.silo.plugin.v1.AuthenticateResponse\x12]\n" +
-	"\x0eRefreshSession\x12%.silo.plugin.v1.RefreshSessionRequest\x1a$.silo.plugin.v1.AuthenticateResponseBSZQgithub.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1;pluginv1b\x06proto3"
+	"\x0eRefreshSession\x12%.silo.plugin.v1.RefreshSessionRequest\x1a$.silo.plugin.v1.AuthenticateResponseBSZQgithub.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginproto/silo/plugin/v1;pluginv1b\x06proto3"
 
 var (
 	file_silo_plugin_v1_auth_provider_proto_rawDescOnce sync.Once

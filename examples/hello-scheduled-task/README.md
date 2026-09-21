@@ -1,6 +1,6 @@
-# Vondel Hello Scheduled Task
+# Bloem Hello Scheduled Task
 
-This Vondel example is a minimal self-describing plugin binary.
+This Bloem example is a minimal self-describing plugin binary.
 
 It demonstrates:
 
@@ -21,6 +21,6 @@ go build -o hello-scheduled-task ./examples/hello-scheduled-task
 ./hello-scheduled-task manifest
 ```
 
-## Install into Vondel
+## Install into Bloem
 
 Upload the built binary through the admin plugin upload flow, or publish it through a plugin catalog entry that points at the binary URL and checksum.

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	pluginv1 "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
+	pluginv1 "github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
 )
 
 // LoadWithChecksum loads an embedded manifest, optionally overrides its version,

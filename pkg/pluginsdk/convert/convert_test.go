@@ -6,8 +6,8 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 
-	pluginv1 "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
-	"github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/convert"
+	pluginv1 "github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
+	"github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/convert"
 )
 
 func TestCapabilityRecordsFromManifestRoundTrips(t *testing.T) {

@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	pluginv1 "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
-	"github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/manifest"
+	pluginv1 "github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
+	"github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/manifest"
 )
 
 func TestLoadRoundTripsCompletePresentation(t *testing.T) {

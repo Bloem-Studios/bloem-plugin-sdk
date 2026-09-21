@@ -11,10 +11,10 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
-	pluginv1 "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
-	publicmanifest "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/manifest"
-	sdkruntime "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/runtime"
-	"github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/runtimedefault"
+	pluginv1 "github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
+	publicmanifest "github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/manifest"
+	sdkruntime "github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/runtime"
+	"github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/runtimedefault"
 )
 
 //go:embed manifest.json
@@ -52,7 +52,7 @@ func (s *scheduledTaskServer) Run(ctx context.Context, _ *pluginv1.RunScheduledT
 }
 
 func main() {
-	logger := hclog.New(&hclog.LoggerOptions{Name: "vondel-hello-runtime-host"})
+	logger := hclog.New(&hclog.LoggerOptions{Name: "bloem-hello-runtime-host"})
 
 	manifest, err := loadManifest()
 	if err != nil {

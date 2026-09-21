@@ -23,7 +23,7 @@ scan_forbidden() {
 command -v rg >/dev/null 2>&1 || fail "required command not found: rg"
 
 test "$(sed -n '1s/^module //p' go.mod)" = \
-  "github.com/Vondel-Media/vondel-plugin-sdk" || fail "unexpected module"
+  "github.com/Bloem-Studios/bloem-plugin-sdk" || fail "unexpected module"
 
 if grep -Eq '^[[:space:]]*replace[[:space:]]|^replace[[:space:]]*\(' go.mod; then
   fail "go.mod contains a replace directive"

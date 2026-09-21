@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	pluginv1 "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
-	"github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/manifest"
+	pluginv1 "github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
+	"github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/manifest"
 )
 
 func TestMetadataProviderSearchReturnsEmptySuccess(t *testing.T) {
@@ -37,7 +37,7 @@ func TestManifestSubcommand(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := m.GetPluginId(); got != "vondel.compat.probe" {
+	if got := m.GetPluginId(); got != "bloem.compat.probe" {
 		t.Fatalf("plugin_id = %q", got)
 	}
 	if got := m.GetSiloApiVersion(); got != "v1" {

@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package silo.plugin.v1;
 
-option go_package = "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1;pluginv1";
+option go_package = "github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginproto/silo/plugin/v1;pluginv1";
 
 import "google/protobuf/duration.proto";
 import "google/protobuf/struct.proto";

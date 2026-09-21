@@ -7,13 +7,13 @@ import (
 	"testing"
 )
 
-func TestVondelModuleAndAttribution(t *testing.T) {
+func TestBloemModuleAndAttribution(t *testing.T) {
 	root := filepath.Join("..", "..")
 	goMod, err := os.ReadFile(filepath.Join(root, "go.mod"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.HasPrefix(string(goMod), "module github.com/Vondel-Media/vondel-plugin-sdk\n") {
+	if !strings.HasPrefix(string(goMod), "module github.com/Bloem-Studios/bloem-plugin-sdk\n") {
 		t.Fatalf("unexpected module declaration: %s", goMod)
 	}
 	notice, err := os.ReadFile(filepath.Join(root, "NOTICE"))

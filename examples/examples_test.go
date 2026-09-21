@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/manifest"
+	"github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/manifest"
 )
 
 func TestExampleManifestIdentity(t *testing.T) {
@@ -13,8 +13,8 @@ func TestExampleManifestIdentity(t *testing.T) {
 		path string
 		id   string
 	}{
-		{"hello-scheduled-task/manifest.json", "vondel.example.hello-task"},
-		{"hello-runtime-host/manifest.json", "vondel.example.runtime-host"},
+		{"hello-scheduled-task/manifest.json", "bloem.example.hello-task"},
+		{"hello-runtime-host/manifest.json", "bloem.example.runtime-host"},
 	}
 	for _, tc := range tests {
 		t.Run(filepath.Base(filepath.Dir(tc.path)), func(t *testing.T) {

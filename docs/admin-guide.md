@@ -60,12 +60,12 @@ existing plugins. They are not mistakes and must not be "tidied up":
 
 | Identifier | Value | Why it stays |
 |---|---|---|
-| Go module path | `github.com/Vondel-Media/vondel-plugin-sdk` | It is the literal import path every plugin's `go.mod` uses. `internal/projectidentity/identity_test.go` and `scripts/verify-private-release.sh` both fail if it changes. |
+| Go module path | `github.com/Bloem-Studios/bloem-plugin-sdk` | It is the literal import path every plugin's `go.mod` uses. `internal/projectidentity/identity_test.go` and `scripts/verify-private-release.sh` both fail if it changes. |
 | Protobuf package | `silo.plugin.v1` | It is the wire name of every message and service. `compat/v1_contract_test.go` fails if it changes. |
 | Manifest field | `silo_api_version` | The server checks it before installing a plugin (see 4.1). Field number 4 is pinned by the contract test. |
 | Handshake cookie | `SILO_PLUGIN=silo-rpc-plugin-v1` | The environment variable the server sets so the plugin binary knows it was launched by a real host. |
 | Plugin set name | `silo` | The name under which the gRPC plugin is registered with the process-launch library. |
-| Example plugin ids | `vondel.example.hello-task`, `vondel.example.runtime-host`, `vondel.compat.probe` | Pinned by `examples/examples_test.go` and `cmd/compat-probe/main_test.go`. |
+| Example plugin ids | `bloem.example.hello-task`, `bloem.example.runtime-host`, `bloem.compat.probe` | Pinned by `examples/examples_test.go` and `cmd/compat-probe/main_test.go`. |
 
 The `NOTICE` file records the upstream project and revision this SDK was forked from; the identity
 test checks that it still does. See the top-level `README.md` for the attribution wording.
@@ -175,10 +175,10 @@ failing guard is a signal to revert, not to "fix the test".
 | Test | File | Fails when |
 |---|---|---|
 | `TestV1WireContract` | `compat/v1_contract_test.go` | The proto package is not `silo.plugin.v1`; `PluginManifest.silo_api_version` is not field 4; the `Runtime`, `MetadataProvider`, `ScanSource` or `RuntimeHost` services are renamed; the handshake constants change; `metadata_provider.v1`, `image_resolver.v1` or `scan_source.v1` disappear from `capability.KnownTypes`. |
-| `TestProtoSourcesPreserveWireIdentity` | `compat/source_guard_test.go` | Any `.proto` file contains `package vondel.plugin` or `vondel_api_version`, or declares an active `go_package` outside `github.com/Vondel-Media/vondel-plugin-sdk/` (comments are stripped first, so a commented-out declaration cannot fool it). |
-| `TestVondelModuleAndAttribution` | `internal/projectidentity/identity_test.go` | `go.mod` does not start with the expected module line, or `NOTICE` loses the upstream name, version, revision, licence or affiliation sentence. |
+| `TestProtoSourcesPreserveWireIdentity` | `compat/source_guard_test.go` | Any `.proto` file contains `package bloem.plugin` or `bloem_api_version`, or declares an active `go_package` outside `github.com/Bloem-Studios/bloem-plugin-sdk/` (comments are stripped first, so a commented-out declaration cannot fool it). |
+| `TestBloemModuleAndAttribution` | `internal/projectidentity/identity_test.go` | `go.mod` does not start with the expected module line, or `NOTICE` loses the upstream name, version, revision, licence or affiliation sentence. |
 | `TestExampleManifestIdentity` | `examples/examples_test.go` | Either example manifest changes its `plugin_id` or its `silo_api_version`. |
-| `TestManifestSubcommand` | `cmd/compat-probe/main_test.go` | The probe no longer prints a valid manifest with `plugin_id` `vondel.compat.probe`, `silo_api_version` `v1` and exactly one `metadata_provider.v1` capability. |
+| `TestManifestSubcommand` | `cmd/compat-probe/main_test.go` | The probe no longer prints a valid manifest with `plugin_id` `bloem.compat.probe`, `silo_api_version` `v1` and exactly one `metadata_provider.v1` capability. |
 | `capability_servers_compat_test.go` | `pkg/pluginsdk/runtime/` | The unkeyed field order of `runtime.CapabilityServers` changes. Plugins written against v0.12 construct it positionally, so new servers must be added through options (see 4.4), not new struct fields. |
 
 ### 2.5 The private-release guard
@@ -189,7 +189,7 @@ non-zero, printing `private release guard failed: <reason>`, when:
 | Check | Failure text |
 |---|---|
 | `rg` is missing | `required command not found: rg` |
-| The first line of `go.mod` is not `module github.com/Vondel-Media/vondel-plugin-sdk` | `unexpected module` |
+| The first line of `go.mod` is not `module github.com/Bloem-Studios/bloem-plugin-sdk` | `unexpected module` |
 | `go.mod` contains a `replace` directive | `go.mod contains a replace directive` |
 | Any workflow under `.github` matches `gh repo edit.*visibility`, `npm publish`, `docker push` or `pkg.go.dev` | `workflow contains a public publication path` |
 | Any file in the repository (except the guard itself) contains an absolute macOS or Linux home-directory path, or a GitHub URL with `user:password@` embedded | `repository contains a local path or credential-bearing URL` |
@@ -264,7 +264,7 @@ sequence with each step explained.
    `git push origin <tag>`.
 7. **Watch the workflow**, then confirm with `gh release view <tag>` and re-check visibility.
 
-> The documented script uses the repository's Git identity (`Vondel-Media/vondel-plugin-sdk`) in its
+> The documented script uses the repository's Git identity (`Bloem-Studios/bloem-plugin-sdk`) in its
 > `gh api` calls. Use whatever `gh repo view --json nameWithOwner` reports for the remote you push to;
 > this checkout's `origin` is `Bloem-Studios/bloem-plugin-sdk`.
 
@@ -500,7 +500,7 @@ the handshake cookie.
 | `private release guard failed: required command not found: rg` | ripgrep not installed. | `brew install ripgrep` / `apt-get install ripgrep`. |
 | `private release guard failed: repository contains a local path or credential-bearing URL` | A doc, comment or fixture contains an absolute home-directory path (macOS or Linux style) or a URL with embedded credentials. | Run the guard; the `rg` pattern inside `scripts/verify-private-release.sh` shows the exact match. Rewrite the path with `~` or a relative path. |
 | `private release guard failed: go.mod contains a replace directive` | A local override was committed. | Remove it; use `go.work` (git-ignored) for local development. |
-| `unexpected module declaration` from `internal/projectidentity` | `go.mod` module line changed. | Restore `module github.com/Vondel-Media/vondel-plugin-sdk`. The import path is part of the contract. |
+| `unexpected module declaration` from `internal/projectidentity` | `go.mod` module line changed. | Restore `module github.com/Bloem-Studios/bloem-plugin-sdk`. The import path is part of the contract. |
 | `compat` tests report `go-plugin handshake contract changed` or `protobuf package = …` | Someone renamed a wire identifier. | Revert. These values are shared with every deployed server. |
 | `make proto` prints `protoc is required` | `protoc` not on `PATH`. | Install protoc; the other generators are fetched automatically. |
 | Generated code differs from a colleague's | Different `protoc-gen-go` / `protoc-gen-go-grpc` versions. | Delete `./bin/` and rerun `make proto` so the pinned versions are installed. |

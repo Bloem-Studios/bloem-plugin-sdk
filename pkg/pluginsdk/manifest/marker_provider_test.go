@@ -3,7 +3,7 @@ package manifest_test
 import (
 	"testing"
 
-	"github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginsdk/manifest"
+	"github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/manifest"
 )
 
 func TestLoadAcceptsMarkerProviderCapability(t *testing.T) {

@@ -1,7 +1,7 @@
 # Private releases
 
-Vondel Plugin SDK releases are GitHub releases inside the existing private
-`Vondel-Media/vondel-plugin-sdk` repository. The release workflow never changes
+Bloem Plugin SDK releases are GitHub releases inside the existing private
+`Bloem-Studios/bloem-plugin-sdk` repository. The release workflow never changes
 repository visibility and does not publish the module to a public package
 registry. It runs only when an operator explicitly pushes a `v*` tag, checks
 out and tests that exact tag, and then creates the corresponding private GitHub
@@ -10,7 +10,7 @@ release.
 ## Create a private release
 
 `v0.13.2` is an immutable failed historical candidate and must never be reused
-or moved. `v0.13.3` is the first verified Vondel Plugin SDK release. For each
+or moved. `v0.13.3` is the first verified Bloem Plugin SDK release. For each
 future release, set `RELEASE_TAG` to a new, unused semantic version, run the
 complete local gate from a clean checkout, create an annotated tag, and push
 only that reviewed tag:
@@ -27,8 +27,8 @@ test -z "$(git status --porcelain)"
 test -z "$(git tag --list "$RELEASE_TAG")"
 remote_tags="$(git ls-remote --tags origin "refs/tags/$RELEASE_TAG" "refs/tags/$RELEASE_TAG^{}")"
 test -z "$remote_tags"
-test "$(gh api repos/Vondel-Media/vondel-plugin-sdk --jq '.visibility')" = private
-if release_lookup="$(gh api --include "repos/Vondel-Media/vondel-plugin-sdk/releases/tags/$RELEASE_TAG" 2>&1)"; then
+test "$(gh api repos/Bloem-Studios/bloem-plugin-sdk --jq '.visibility')" = private
+if release_lookup="$(gh api --include "repos/Bloem-Studios/bloem-plugin-sdk/releases/tags/$RELEASE_TAG" 2>&1)"; then
   echo "release $RELEASE_TAG already exists" >&2
   exit 1
 fi
@@ -39,10 +39,10 @@ if [[ "$release_http_status" != 404 ]]; then
 fi
 GOWORK=off go test ./...
 ./scripts/verify-private-release.sh
-git tag -a "$RELEASE_TAG" -m "Vondel Plugin SDK $RELEASE_TAG"
+git tag -a "$RELEASE_TAG" -m "Bloem Plugin SDK $RELEASE_TAG"
 git push origin "$RELEASE_TAG"
-gh release view "$RELEASE_TAG" --repo Vondel-Media/vondel-plugin-sdk
-gh api repos/Vondel-Media/vondel-plugin-sdk --jq '.visibility'
+gh release view "$RELEASE_TAG" --repo Bloem-Studios/bloem-plugin-sdk
+gh api repos/Bloem-Studios/bloem-plugin-sdk --jq '.visibility'
 ```
 
 The clean-worktree check and all three uniqueness checks must succeed before

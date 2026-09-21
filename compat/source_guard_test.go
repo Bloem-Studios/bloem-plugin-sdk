@@ -14,7 +14,7 @@ var goPackageOption = regexp.MustCompile(`(?m)^\s*option\s+go_package\s*=\s*"([^
 func TestGoPackageViolationsRejectActiveOutsideDeclarationDespiteApprovedComment(t *testing.T) {
 	text := `syntax = "proto3";
 
-// option go_package = "github.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1;pluginv1";
+// option go_package = "github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginproto/silo/plugin/v1;pluginv1";
 option go_package = "example.com/outside/plugin/v1;pluginv1";
 `
 
@@ -43,7 +43,7 @@ func TestProtoSourcesPreserveWireIdentity(t *testing.T) {
 			return err
 		}
 		text := string(data)
-		for _, forbidden := range []string{"package vondel.plugin", "vondel_api_version"} {
+		for _, forbidden := range []string{"package bloem.plugin", "bloem_api_version"} {
 			if strings.Contains(text, forbidden) {
 				t.Errorf("%s contains forbidden wire rename %q", path, forbidden)
 			}
@@ -62,10 +62,10 @@ func TestProtoSourcesPreserveWireIdentity(t *testing.T) {
 }
 
 func goPackageViolations(text string) []string {
-	const expectedPrefix = "github.com/Vondel-Media/vondel-plugin-sdk/"
+	const expectedPrefix = "github.com/Bloem-Studios/bloem-plugin-sdk/"
 	declarations := goPackageDeclarations(text)
 	if len(declarations) == 0 {
-		return []string{"does not use the Vondel build-time Go package"}
+		return []string{"does not use the Bloem build-time Go package"}
 	}
 
 	var violations []string

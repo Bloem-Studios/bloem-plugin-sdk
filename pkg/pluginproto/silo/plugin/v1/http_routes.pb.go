@@ -182,7 +182,7 @@ const file_silo_plugin_v1_http_routes_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x012]\n" +
 	"\n" +
 	"HttpRoutes\x12O\n" +
-	"\x06Handle\x12!.silo.plugin.v1.HandleHTTPRequest\x1a\".silo.plugin.v1.HandleHTTPResponseBSZQgithub.com/Vondel-Media/vondel-plugin-sdk/pkg/pluginproto/silo/plugin/v1;pluginv1b\x06proto3"
+	"\x06Handle\x12!.silo.plugin.v1.HandleHTTPRequest\x1a\".silo.plugin.v1.HandleHTTPResponseBSZQgithub.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginproto/silo/plugin/v1;pluginv1b\x06proto3"
 
 var (
 	file_silo_plugin_v1_http_routes_proto_rawDescOnce sync.Once
