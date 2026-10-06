@@ -4,8 +4,10 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	storagev1 "github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginproto/bloem/plugin/v1"
 	"google.golang.org/grpc/codes"
@@ -52,9 +54,19 @@ func (p *provider) Describe(ctx context.Context, _ *storagev1.DescribeRequest) (
 	if _, present := os.LookupEnv("BLOEM_STORAGE_TEST_SENTINEL"); present {
 		return nil, status.Error(codes.PermissionDenied, "parent environment inherited")
 	}
-	return &storagev1.DescribeResponse{Revision: 1, Sources: []*storagev1.Source{{Id: "fixture", Name: "Synthetic ebooks", RootEntryId: "root", RevisionPinnedReads: true}}}, nil
+	return &storagev1.DescribeResponse{Revision: 1, Sources: []*storagev1.Source{{Id: "fixture", Name: "Synthetic ebooks", RootEntryId: "root", RevisionPinnedReads: true}, {Id: "scale", Name: "Synthetic two-million-entry namespace", RootEntryId: "root", RevisionPinnedReads: true}}}, nil
 }
 func (p *provider) entry(source, id string) (*storagev1.Entry, error) {
+	if source == "scale" || source == "scale-failure" {
+		if id == "root" {
+			return &storagev1.Entry{Id: "root", Name: "root", Kind: storagev1.EntryKind_ENTRY_KIND_DIRECTORY, Revision: "v1"}, nil
+		}
+		n, err := strconv.Atoi(strings.TrimPrefix(id, "book-"))
+		if err != nil || n < 0 || n >= 2_000_000 || fmt.Sprintf("book-%07d", n) != id {
+			return nil, status.Error(codes.NotFound, "entry absent")
+		}
+		return &storagev1.Entry{Id: id, Name: id + ".epub", LogicalPath: id + ".epub", Kind: storagev1.EntryKind_ENTRY_KIND_FILE, Size: int64(len(p.book)), Revision: "v1"}, nil
+	}
 	if source != "fixture" {
 		return nil, status.Error(codes.NotFound, "source absent")
 	}
@@ -91,6 +103,9 @@ func (p *provider) List(ctx context.Context, r *storagev1.ListRequest) (*storage
 	if err := ctx.Err(); err != nil {
 		return nil, status.FromContextError(err).Err()
 	}
+	if r.GetSourceId() == "scale" || r.GetSourceId() == "scale-failure" {
+		return p.listScale(r)
+	}
 	dir, err := p.entry(r.GetSourceId(), r.GetDirectoryId())
 	if err != nil {
 		return nil, err
@@ -124,6 +139,44 @@ func (p *provider) List(ctx context.Context, r *storagev1.ListRequest) (*storage
 			return nil, err
 		}
 		out.Entries = append(out.Entries, e)
+	}
+	if !out.Complete {
+		out.NextCursor = strconv.Itoa(end)
+	}
+	return out, nil
+}
+
+// Generate only the requested page, never the complete virtual namespace.
+func (p *provider) listScale(r *storagev1.ListRequest) (*storagev1.ListResponse, error) {
+	if r.GetDirectoryId() != "root" {
+		return nil, status.Error(codes.NotFound, "directory absent")
+	}
+	start := 0
+	var err error
+	if r.GetCursor() != "" {
+		start, err = strconv.Atoi(r.GetCursor())
+		if err != nil || start < 0 || start > 2_000_000 {
+			return nil, status.Error(codes.InvalidArgument, "invalid cursor")
+		}
+	}
+	if r.GetSourceId() == "scale-failure" && start >= 512 {
+		return nil, status.Error(codes.Unavailable, "injected page failure")
+	}
+	limit := int(r.GetMaxEntries())
+	if limit == 0 || limit > 512 {
+		limit = 512
+	}
+	end := start + limit
+	if end > 2_000_000 {
+		end = 2_000_000
+	}
+	out := &storagev1.ListResponse{Complete: end == 2_000_000}
+	for i := start; i < end; i++ {
+		entry, err := p.entry(r.GetSourceId(), fmt.Sprintf("book-%07d", i))
+		if err != nil {
+			return nil, err
+		}
+		out.Entries = append(out.Entries, entry)
 	}
 	if !out.Complete {
 		out.NextCursor = strconv.Itoa(end)

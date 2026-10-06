@@ -43,10 +43,12 @@ func TestProtoSourcesPreserveWireIdentity(t *testing.T) {
 			return err
 		}
 		text := string(data)
-		for _, forbidden := range []string{"package bloem.plugin", "bloem_api_version"} {
-			if strings.Contains(text, forbidden) {
-				t.Errorf("%s contains forbidden wire rename %q", path, forbidden)
-			}
+		relative, err := filepath.Rel(root, path)
+		if err != nil {
+			return err
+		}
+		for _, violation := range wireIdentityViolations(relative, text) {
+			t.Errorf("%s %s", path, violation)
 		}
 		for _, violation := range goPackageViolations(text) {
 			t.Errorf("%s %s", path, violation)
@@ -149,4 +151,34 @@ func stripProtoComments(text string) string {
 	}
 
 	return stripped.String()
+}
+
+// Preserve legacy wire identities while permitting an independent namespace.
+func TestWireIdentityGuardDistinguishesLegacyAndPrivateSources(t *testing.T) {
+	for _, tc := range []struct {
+		path, text string
+		want       int
+	}{
+		{"silo/plugin/v1/common.proto", "package bloem.plugin.v1;", 1},
+		{"silo/plugin/v1/common.proto", "string bloem_api_version = 1;", 1},
+		{"silo/plugin/v1/common.proto", "package silo.plugin.v1;", 0},
+		{"bloem/plugin/v1/storage_provider.proto", "package bloem.plugin.v1;", 0},
+	} {
+		if got := len(wireIdentityViolations(tc.path, tc.text)); got != tc.want {
+			t.Fatalf("%s: got %d violations, want %d", tc.path, got, tc.want)
+		}
+	}
+}
+
+func wireIdentityViolations(relativePath, text string) []string {
+	if !strings.HasPrefix(filepath.ToSlash(relativePath), "silo/") {
+		return nil
+	}
+	var violations []string
+	for _, forbidden := range []string{"package bloem.plugin", "bloem_api_version"} {
+		if strings.Contains(text, forbidden) {
+			violations = append(violations, fmt.Sprintf("contains forbidden wire rename %q", forbidden))
+		}
+	}
+	return violations
 }

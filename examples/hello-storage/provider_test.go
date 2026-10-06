@@ -44,3 +44,21 @@ func TestFixtureContainsSeekableEbook(t *testing.T) {
 		}
 	}
 }
+
+func TestPagedScaleNamespace(t *testing.T) {
+	p, err := newProvider()
+	if err != nil {
+		t.Fatal(err)
+	}
+	page, err := p.List(context.Background(), &storagev1.ListRequest{SourceId: "scale", DirectoryId: "root", Cursor: "1999872", MaxEntries: 128})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.GetEntries()) != 128 || !page.GetComplete() || page.GetNextCursor() != "" || page.GetEntries()[0].GetId() != "book-1999872" || page.GetEntries()[127].GetId() != "book-1999999" {
+		t.Fatalf("last scale page wrong: entries=%d complete=%v", len(page.GetEntries()), page.GetComplete())
+	}
+	_, err = p.List(context.Background(), &storagev1.ListRequest{SourceId: "scale-failure", DirectoryId: "root", Cursor: "512", MaxEntries: 512})
+	if status.Code(err) != codes.Unavailable {
+		t.Fatalf("failure was not classified: %v", err)
+	}
+}
