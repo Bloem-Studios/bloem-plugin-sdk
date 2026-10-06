@@ -3,6 +3,7 @@ package runtime
 import (
 	"context"
 
+	storagev1 "github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginproto/bloem/plugin/v1"
 	pluginv1 "github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
 	"github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/manifest"
 )
@@ -20,6 +21,7 @@ type manifestRuntime struct {
 }
 
 type serveManifestOptions struct {
+	storageProvider              storagev1.StorageProviderServer
 	watchSyncDeviceAuthorization pluginv1.WatchSyncDeviceAuthorizationServiceServer
 }
 
@@ -79,9 +81,6 @@ func ServeManifestWithOptions(
 	}
 	Serve(ServeConfig{
 		Servers: servers,
-		Plugins: DefaultPluginSetWithWatchSyncDeviceAuthorization(
-			servers,
-			resolved.watchSyncDeviceAuthorization,
-		),
+		Plugins: manifestPluginSet(servers, resolved),
 	})
 }
