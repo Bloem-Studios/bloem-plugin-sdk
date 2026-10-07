@@ -1,7 +1,7 @@
 ---
 title: Bloem Plugin SDK Admin Guide
 description: How to build, test, version and release the Bloem plugin authoring SDK, how a finished plugin is packaged and installed on a Bloem server, and where the security boundary between server and plugin sits.
-summary: Repository layout, build and protobuf regeneration, the contract guard tests, CI and the private release workflow, versioning and server compatibility, plugin packaging and installation, the process and security model, and troubleshooting.
+summary: Repository layout, build and protobuf regeneration, the contract guard tests, CI and the public release workflow, versioning and server compatibility, plugin packaging and installation, the process and security model, and troubleshooting.
 tags:
   - admin
   - sdk
@@ -11,7 +11,7 @@ tags:
 audience:
   - maintainer
   - operator
-last_reviewed: 2026-09-05
+last_reviewed: 2026-10-07
 related:
   - user-guide.md
   - compatibility.md
@@ -43,7 +43,7 @@ A glossary and a list of source references close the document.
 The Bloem Plugin SDK is a **Go library**. It is not a program you run on a server. A plugin author
 adds it to their own Go module with `go get`, and it gives them:
 
-- the generated protobuf and gRPC code for every plugin capability the Bloem server understands;
+- generated protobuf and gRPC contracts for supported public capabilities and native storage;
 - helpers to load and validate a plugin's `manifest.json`;
 - a `Serve` function that turns a plugin into a process the server can launch and talk to;
 - a typed client for calling back into the server (the "runtime host").
@@ -61,7 +61,7 @@ existing plugins. They are not mistakes and must not be "tidied up":
 | Identifier | Value | Why it stays |
 |---|---|---|
 | Go module path | `github.com/Bloem-Studios/bloem-plugin-sdk` | It is the literal import path every plugin's `go.mod` uses. `internal/projectidentity/identity_test.go` and `scripts/verify-private-release.sh` both fail if it changes. |
-| Protobuf package | `silo.plugin.v1` | It is the wire name of every message and service. `compat/v1_contract_test.go` fails if it changes. |
+| Protobuf package | `silo.plugin.v1` | It is the preserved public wire namespace; native storage uses independent `bloem.plugin.v1`. `compat/v1_contract_test.go` fails if it changes. |
 | Manifest field | `silo_api_version` | The server checks it before installing a plugin (see 4.1). Field number 4 is pinned by the contract test. |
 | Handshake cookie | `SILO_PLUGIN=silo-rpc-plugin-v1` | The environment variable the server sets so the plugin binary knows it was launched by a real host. |
 | Plugin set name | `silo` | The name under which the gRPC plugin is registered with the process-launch library. |
@@ -75,6 +75,7 @@ test checks that it still does. See the top-level `README.md` for the attributio
 | Path | What it holds |
 |---|---|
 | `proto/silo/plugin/v1/*.proto` | The source of truth: one `.proto` file per capability family plus `common.proto` (manifest, runtime) and `runtime_host.proto` (host call-backs). |
+| `proto/bloem/plugin/v1/storage_provider.proto` | Separate native-storage contract; generated bindings are in `pkg/pluginproto/bloem/plugin/v1/`. |
 | `pkg/pluginproto/silo/plugin/v1/` | Generated Go code (`*.pb.go`, `*_grpc.pb.go`). Committed; regenerate with `make proto`. |
 | `pkg/pluginsdk/capability` | String constants for every capability type (`metadata_provider.v1` and so on) and the `KnownTypes` list. |
 | `pkg/pluginsdk/manifest` | Manifest loading, validation, checksum stamping, presentation rules, HTTP route and asset registration. |
@@ -87,7 +88,7 @@ test checks that it still does. See the top-level `README.md` for the attributio
 | `cmd/compat-probe` | A tiny plugin (`metadata_provider.v1`, empty search) used to prove that a server can launch an SDK-built binary. |
 | `compat/` | Tests that lock the wire contract and the proto `go_package` options. |
 | `internal/projectidentity` | Test that the module path and `NOTICE` attribution are intact. |
-| `examples/` | Two complete plugins: `hello-scheduled-task` and `hello-runtime-host`. |
+| `examples/` | Scheduled task, runtime host and network access examples; `hello-storage` is a synthetic conformance fixture. |
 | `scripts/` | `build-compat-probe.sh`, `verify-private-release.sh`, `test-private-release.sh`. |
 | `.github/workflows/` | `ci.yml` (push to `main` and pull requests) and `release.yml` (tags `v*`). |
 | `docs/` | `compatibility.md`, `private-release.md`, `runtime-host.md`, and the two guides. |
@@ -130,8 +131,7 @@ The test run is quick and has no external dependencies. One test, `cmd/compat-pr
 ### 2.2 Build the examples and the probe
 
 ```sh
-GOWORK=off go build ./examples/hello-scheduled-task
-GOWORK=off go build ./examples/hello-runtime-host
+GOWORK=off go build ./examples/...
 ./scripts/build-compat-probe.sh
 ```
 
@@ -175,7 +175,7 @@ failing guard is a signal to revert, not to "fix the test".
 | Test | File | Fails when |
 |---|---|---|
 | `TestV1WireContract` | `compat/v1_contract_test.go` | The proto package is not `silo.plugin.v1`; `PluginManifest.silo_api_version` is not field 4; the `Runtime`, `MetadataProvider`, `ScanSource` or `RuntimeHost` services are renamed; the handshake constants change; `metadata_provider.v1`, `image_resolver.v1` or `scan_source.v1` disappear from `capability.KnownTypes`. |
-| `TestProtoSourcesPreserveWireIdentity` | `compat/source_guard_test.go` | Any `.proto` file contains `package bloem.plugin` or `bloem_api_version`, or declares an active `go_package` outside `github.com/Bloem-Studios/bloem-plugin-sdk/` (comments are stripped first, so a commented-out declaration cannot fool it). |
+| `TestProtoSourcesPreserveWireIdentity` | `compat/source_guard_test.go` | A legacy `proto/silo/` source contains `package bloem.plugin` or `bloem_api_version`, or declares an active `go_package` outside `github.com/Bloem-Studios/bloem-plugin-sdk/` (comments are stripped first, so a commented-out declaration cannot fool it). |
 | `TestBloemModuleAndAttribution` | `internal/projectidentity/identity_test.go` | `go.mod` does not start with the expected module line, or `NOTICE` loses the upstream name, version, revision, licence or affiliation sentence. |
 | `TestExampleManifestIdentity` | `examples/examples_test.go` | Either example manifest changes its `plugin_id` or its `silo_api_version`. |
 | `TestManifestSubcommand` | `cmd/compat-probe/main_test.go` | The probe no longer prints a valid manifest with `plugin_id` `bloem.compat.probe`, `silo_api_version` `v1` and exactly one `metadata_provider.v1` capability. |
@@ -221,8 +221,7 @@ guard on the clean tree. Run it after touching either script or either workflow:
 1. `apt-get install ripgrep`
 2. `./scripts/verify-private-release.sh`
 3. `GOWORK=off go test ./...`
-4. `GOWORK=off go build ./examples/hello-scheduled-task`
-5. `GOWORK=off go build ./examples/hello-runtime-host`
+4. `GOWORK=off go build ./examples/...`
 
 There is no lint job, no coverage upload and no artifact publication in CI.
 
@@ -240,8 +239,8 @@ write` permission (needed to create the GitHub Release) and two jobs:
   auto-generated release notes.
 
 The workflow never changes repository visibility and never publishes to a package registry. A
-"release" here is a Git tag plus a GitHub Release record in the private repository; consumers fetch
-the module through Git with credentials that can read the repository.
+"release" here is a Git tag plus a GitHub Release record in the public repository.
+Go consumers can fetch the module without credentials or `GOPRIVATE`.
 
 ### 3.3 Cutting a release, step by step
 
@@ -257,8 +256,8 @@ sequence with each step explained.
    Release with that tag (`gh api --include repos/<org>/<repo>/releases/tags/<tag>` returns HTTP 404).
    The script in `private-release.md` does exactly these checks and stops on any other answer,
    including a network error, because "could not check" is not "unused".
-4. **Confirm the repository is private**: `gh api repos/<org>/<repo> --jq '.visibility'` prints
-   `private`.
+4. **Confirm the repository is public**: `gh api repos/<org>/<repo> --jq '.visibility'` prints
+   `public`.
 5. **Run the full local gate**: `GOWORK=off go test ./...` then `./scripts/verify-private-release.sh`.
 6. **Tag and push only the tag**: `git tag -a <tag> -m "Bloem Plugin SDK <tag>"` then
    `git push origin <tag>`.
@@ -270,11 +269,10 @@ sequence with each step explained.
 
 ### 3.4 Rolling a release back
 
-From `private-release.md`: delete the GitHub Release and its tag **only if no downstream repository
-has pinned that tag**. Remove the release first, then the remote tag, then the local tag. If anything
-already depends on it, leave it in place and publish a new patch tag with the fix. Tags that have been
-consumed are immutable in practice, because Go's module cache and checksum database entries would
-disagree with a moved tag.
+Preserve published tags and publish a corrected patch release. Public Go proxies
+and checksum databases can cache a tag before a known consumer pins it; deleting
+or moving the tag does not roll those copies back. Retract an affected version
+in `go.mod` when necessary. See [the release procedure](private-release.md).
 
 ### 3.5 Versioning policy
 
@@ -329,19 +327,21 @@ A plugin built with this SDK and a server that speaks v1 agree on:
 - the protobuf package `silo.plugin.v1` and every message and field number in it;
 - the gRPC service names (`Runtime`, `MetadataProvider`, `ImageResolver`, `MarkerProvider`,
   `MediaAnalyzer`, `ScheduledTask`, `ScanSource`, `RequestRouter`, `EventConsumer`, `AuthProvider`,
-  `HttpRoutes`, `WatchSyncProvider`, `WatchSyncDeviceAuthorizationService`, and the host-side
+  `AuthProviderChecks`, `NetworkIdentityAuth`, `HttpRoutes`, `WatchSyncProvider`, `WatchSyncDeviceAuthorizationService`, and the host-side
   `RuntimeHost`);
 - the process handshake: protocol version `1`, environment variable `SILO_PLUGIN` with value
   `silo-rpc-plugin-v1`, plugin set name `silo`;
 - the manifest JSON shape (protojson encoding of `PluginManifest`; unknown keys are ignored on load).
 
-Because the server embeds the same contract, an SDK release that only *adds* things is safe for
-every existing server: a newer plugin may send fields an older server ignores, and an older plugin
-never sends fields a newer server requires.
+Additive fields preserve wire decoding, but a host may not implement a newer
+service or honor its fields. Plugins must advertise only implemented behavior
+and verify host support before relying on it. Native storage requires separate
+host admission. [Compatibility](compatibility.md#release-lineage) records the
+upstream baseline and the server's actual dependency arrangement.
 
 ### 4.3 Capability families known to this SDK
 
-`capability.KnownTypes` lists exactly these thirteen strings. A manifest that names any other type
+`capability.KnownTypes` lists exactly these fourteen strings. A manifest that names any other type
 fails validation with `unknown type`.
 
 | Type string | gRPC service in this SDK | Notes |
@@ -352,11 +352,12 @@ fails validation with `unknown type`.
 | `media_analyzer.v1` | `MediaAnalyzer` | Local analysis of a media file for intro and credits ranges. |
 | `scheduled_task.v1` | `ScheduledTask` | Host-scheduled jobs. |
 | `event_consumer.v1` | `EventConsumer` | Receives host and plugin events. |
-| `auth_provider.v1` | `AuthProvider` | Password and OAuth/OIDC login. |
+| `auth_provider.v1` | `AuthProvider`, optional `AuthProviderChecks` and `NetworkIdentityAuth` | Password, OAuth/OIDC and overlay-identity login. |
 | `http_routes.v1` | `HttpRoutes` | Plugin-served HTTP endpoints and pages. |
 | `request_router.v1` | `RequestRouter` | Media request fulfilment through downstream services. |
 | `scan_source.v1` | `ScanSource` | Autoscan change sources. |
 | `watch_sync_provider.v1` | `WatchSyncProvider` (+ `WatchSyncDeviceAuthorizationService`) | External watch-history sync. |
+| `network_access_provider.v1` | `NetworkAccessProvider` | Resident overlay network and ingress proxy. |
 | `audiobook_backend.v1` | none | Constant only; no service definition ships in this SDK. |
 | `ebook_backend.v1` | none | Constant only; no service definition ships in this SDK. |
 
@@ -374,7 +375,11 @@ runtime.ServeManifestWithOptions(manifestJSON, version, servers,
 ```
 
 `DefaultPluginSetWithWatchSyncDeviceAuthorization` does the same for plugins that call `Serve`
-directly. Follow this pattern for any future service.
+directly. `WithAuthProviderChecks`, `WithNetworkIdentityAuth` and
+`WithStorageProvider` follow the same additive option pattern; `WithConfigure`
+accepts settings without replacing the default Runtime. The private storage
+service coexists with public optional services, but its host runs approved native
+providers without general RuntimeHost callbacks. See [storage-provider.md](storage-provider.md).
 
 ---
 
@@ -527,7 +532,7 @@ the handshake cookie.
 - **Guard test** — a test whose only job is to fail when a contract or identity value changes.
 - **Handshake** — the go-plugin start-up exchange (protocol version, magic cookie) that proves a binary was launched by a real host.
 - **Manifest** — `manifest.json`, the plugin's self-description: id, version, checksum, API version, platforms, capabilities, settings schema, routes, assets.
-- **Private release** — a Git tag plus a GitHub Release in the private repository; nothing is published to a public registry.
+- **SDK release** — an immutable Git tag plus a GitHub Release in the public repository; Go can resolve its module without credentials. The release-guard filenames retain their historical names.
 - **RuntimeHost** — the gRPC service the server exposes to plugins for events, catalog reads, peer discovery and scoped streams.
 - **Semver** — `MAJOR.MINOR.PATCH` versioning; additive = minor, compatible fix = patch, breaking = major.
 - **Sideload** — installing a plugin by uploading its zip directly rather than from a catalog.

@@ -2,22 +2,51 @@
 
 ## Scope
 
-`bloem-plugin-sdk` is the private Bloem build-time contract for Go plugin
+`bloem-plugin-sdk` is the public Bloem build-time contract for Go plugin
 authors. Its plugins target Bloem and compatible official Silo servers through
 the preserved v1 wire contract.
 
-This repository is released privately as a semver-governed Go module. Bloem
+This repository is public and released as a semver-governed Go module. Bloem
 plugins and first-party consumers should depend on tagged releases, not on
 sibling repo checkouts or workspace-only overrides.
 
 The compatibility boundary includes:
 
-- protobuf messages and gRPC services under `pkg/pluginproto/silo/plugin/v1`
+- public protobuf messages and gRPC services under `pkg/pluginproto/silo/plugin/v1`
+- independent Bloem storage messages and service under `pkg/pluginproto/bloem/plugin/v1`
 - runtime bootstrap behavior in `pkg/pluginsdk/runtime`
 - manifest helpers in `pkg/pluginsdk/manifest`
 - config validation helpers in `pkg/pluginsdk/config`
 - generic capability metadata conversion helpers in `pkg/pluginsdk/convert`
 - canonical image-variant strings in `pkg/pluginsdk/imagevariant`
+
+## Release lineage
+
+Bloem `v0.16.1` contains the compatible upstream Silo `v0.16.1` public contract.
+Bloem `v0.24.0` carries the public contract and helper/runtime changes through
+Silo `v0.23.0` (`96074c2c57bb726ce4cedcb2cb70434a5b1b9667`), plus Bloem's separate
+native-storage service. The version numbers identify different modules; a Bloem
+host or plugin does not need matching module versions merely to share the wire.
+
+The current Bloem Server pins `github.com/Silo-Server/silo-plugin-sdk v0.23.0`
+for public plugin capabilities. Its native-storage protocol is owned in the
+server repository, under the same `bloem.plugin.v1` wire namespace; the SDK's
+storage proto is byte-identical to that contract. There is no server dependency
+on a sibling SDK checkout. Do not link both SDK modules into one Go process:
+they register the same public protobuf descriptor names. Plugin and host
+executables may use different module paths and communicate over gRPC.
+
+The `v0.24.0` additions include auth account checks/network identity, a
+`WithConfigure` callback, request seasons/progress/wording, watch ratings/series,
+dropped shows and page warnings. Bloem module paths, attribution, examples,
+wire identity and released struct layouts remain preserved. New service options
+compose with `WithStorageProvider` on the existing connection.
+
+The private storage service is separate from the public capability vocabulary.
+"Private" describes its host admission and independent extension boundary; the
+SDK repository and its Go module tags are public. See
+[storage-provider.md](storage-provider.md). Bloem's bundled promotions and
+ambience processes use a server-owned JSON bridge and require no SDK capability.
 
 ## Versioning Rules
 
@@ -30,7 +59,7 @@ The compatibility boundary includes:
 
 ## Consumer Rules
 
-- Bloem hosts and plugins should pin released SDK tags in `go.mod`.
+- Plugin authors should pin released Bloem SDK tags in `go.mod`; hosts may use the compatible upstream SDK as described above.
 - CI and release pipelines should build with `GOWORK=off` and without checking out this repo as a sibling source dependency.
 - Local `go.work` files and temporary `replace` directives are acceptable for development, but they must not be committed as the release path.
 

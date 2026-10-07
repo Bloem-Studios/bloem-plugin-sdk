@@ -4,6 +4,10 @@
 exposes to plugins. It inverts the usual capability flow: instead of the host
 calling into the plugin, the plugin calls back into the host.
 
+This callback surface is available to ordinary public-capability plugins. Bloem
+native-storage processes receive no general RuntimeHost broker;
+[storage providers](storage-provider.md) must not depend on these callbacks.
+
 ## Available RPCs (v1)
 
 | RPC | Purpose |

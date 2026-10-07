@@ -2,15 +2,16 @@
 
 The Go library for writing Bloem server plugins. **Not a runtime plugin** — this is
 a library that plugin authors depend on via `go.mod`. It gives a plugin author the generated
-protobuf and gRPC code for every capability a Bloem server understands, helpers to load and
+protobuf and gRPC code for supported plugin capabilities, helpers to load and
 validate a `manifest.json`, a `Serve` function that turns a Go program into a process the server
 can launch and talk to, and a typed client for calling back into the server. Plugins built with
 this SDK target Bloem servers and compatible upstream Silo servers through the same v1 wire
 contract. It is for plugin authors, and for the maintainer who keeps the contract stable and
 cuts releases.
 
-This repository is Bloem's source of truth for the plugin authoring contract. Bloem hosts and
-plugins pin tagged semver releases. Local multi-repo workspaces may use `go.work` or a temporary
+This repository is Bloem's source of truth for the plugin authoring contract. Bloem plugin authors pin tagged semver releases. Bloem Server currently pins the upstream
+Silo SDK for public capabilities and owns its separate native-storage bindings; see
+[compatibility and release lineage](docs/compatibility.md#release-lineage). Local multi-repo workspaces may use `go.work` or a temporary
 `replace`, but CI and release builds resolve the SDK from a published module tag.
 
 A few identifiers keep spellings from the project's origins because servers and plugins already
@@ -27,7 +28,7 @@ speak them: the Go module path `github.com/Bloem-Studios/bloem-plugin-sdk`, the 
 - Self-describing binaries: the SHA-256 of the running executable is computed at start-up and written into the manifest, so a package is installable without external repository state.
 - `runtimedefault`: an embeddable `Runtime` server with `BindHostBroker` already wired.
 - New gRPC services are added through `ServeManifestOption` values (for example `WithWatchSyncDeviceAuthorization`), never by changing the `CapabilityServers` shape, so plugins written for v0.12 keep compiling.
-- Two complete example plugins (`hello-scheduled-task`, `hello-runtime-host`) and a compat probe that proves a server can launch an SDK-built binary.
+- Examples for scheduled tasks, host callbacks and network access, a synthetic native-storage fixture, and a compat probe that proves a server can launch an SDK-built binary.
 
 **Manifest and settings**
 
@@ -41,7 +42,7 @@ speak them: the Go module path `github.com/Bloem-Studios/bloem-plugin-sdk`, the 
 
 - Metadata: `metadata_provider.v1` (search, details, seasons, episodes, images, people, image URL resolution) and `image_resolver.v1`.
 - Playback markers: `marker_provider.v1` (external intro/credits/recap/preview segments) and `media_analyzer.v1` (local file analysis).
-- Host integration: `scheduled_task.v1`, `event_consumer.v1`, `http_routes.v1` (with per-route `access` levels enforced by the server), `auth_provider.v1` (password and OAuth/OIDC login).
+- Host integration: `scheduled_task.v1`, `event_consumer.v1`, `http_routes.v1` (with per-route `access` levels enforced by the server), `auth_provider.v1` (password, OAuth/OIDC and network-identity login, with typed account checks).
 - Media pipeline: `request_router.v1`, `scan_source.v1` (Autoscan change sources), `watch_sync_provider.v1` (external watch-history sync with device-code authorization), `network_access_provider.v1`.
 - `audiobook_backend.v1` and `ebook_backend.v1` as constants only; no service definition ships in this SDK. There is no subtitle capability.
 
@@ -73,7 +74,7 @@ the full walkthrough is in the [User Guide](docs/user-guide.md#2-your-first-plug
    ```sh
    mkdir hello-plugin && cd hello-plugin
    go mod init example.com/hello-plugin
-   go get github.com/Bloem-Studios/bloem-plugin-sdk@v0.16.1
+   go get github.com/Bloem-Studios/bloem-plugin-sdk@v0.24.0
    ```
 
 2. **Write `manifest.json`** with `plugin_id`, `version`, `"checksum": "__CHECKSUM__"`,
@@ -119,17 +120,15 @@ the full walkthrough is in the [User Guide](docs/user-guide.md#2-your-first-plug
 - `github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/runtime` — `manifest` subcommand + `Runtime` server scaffolding.
 - `github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/runtimedefault` — default `Runtime` implementation with `BindHostBroker` already wired; embed it to skip boilerplate.
 - `github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/runtimehost` — typed client for the host's `RuntimeHost` service, including event publishing, host info, catalog browsing, installed-plugin discovery, scoped streams, plugin-to-plugin HTTP calls, and plugin-owned config writes.
-- `github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/httpclient` — small outbound JSON HTTP client for plugins that talk to a third-party API with an `X-Api-Key` header.
 
 ## Capability families
 
-The SDK ships protobuf contracts for every capability the host understands:
+The SDK preserves these public capability identifiers; availability depends on the host:
 
 - `metadata_provider.v1`
 - `image_resolver.v1`
 - `marker_provider.v1`
 - `media_analyzer.v1`
-- `image_resolver.v1`
 - `scheduled_task.v1`
 - `event_consumer.v1`
 - `auth_provider.v1`
@@ -229,7 +228,28 @@ err = host.CallPluginJSON(ctx, runtimehost.CallPluginJSONRequest{
 })
 ```
 
-The `auth_provider.v1` capability also exposes OAuth-flow RPCs (`InitAuthorize`, `ExchangeCode`, `RefreshSession`) for plugins that wrap external identity providers.
+The `auth_provider.v1` capability supports typed sign-in outcomes and separate
+`AuthProviderChecks` and `NetworkIdentityAuth` services. Hosts use `CheckAccount`
+for account revalidation; `RefreshSession` remains for wire compatibility. See
+[auth providers](docs/auth-provider.md).
+
+## Native storage and bundled presentation workers
+
+The separate `bloem.plugin.v1.StorageProvider` service supplies revision-pinned
+file discovery and range reads through `runtime.WithStorageProvider`. It adds no
+Silo capability type or field to `CapabilityServers`. Host-approved native
+storage has its own installation and runtime policy; ordinary catalog upload is
+not its admission path. See [the storage contract](docs/storage-provider.md) and
+[the synthetic fixture](examples/hello-storage/README.md).
+
+Bloem's bundled promotions and ambience workers use a server-owned version-one
+JSON process protocol. They are not SDK gRPC services or catalog capabilities.
+
+## Request routers
+
+Typed `RequestRouterDescriptor` metadata declares season selection, download
+progress and client-safe wording. A plugin must honor every advertised flag;
+unknown or absent support is false. See the [authoring guide](docs/user-guide.md#68-request_routerv1--requestrouterserver).
 
 ## Watch sync providers
 
@@ -292,7 +312,12 @@ Connection-wide faults such as invalid credentials belong on the RPC response.
 
 `ListRemoteState` returns provider-neutral typed subrecords. `watched` carries a
 play count and last-watched time; `progress` carries a fractional percentage and
-paused time; `favorite` and `watchlist` carry list membership. An item may
+paused time; `favorite`, `watchlist` and `dropped` carry list membership; `rating` carries a
+1–10 rating or explicit removal. Dropped state applies to series. Declare
+`import_ratings`, `export_ratings` and `sync_dropped` only for implemented flows.
+`rating_export_requires_watched` limits export to declared supported media types
+with a completed play. Page `warnings` are diagnostic; they do not authorize
+absence deletion. An item may
 contain multiple state families. The host requests only the state families a
 sync phase needs, keeps that phase's `cursor` fixed while following ephemeral
 page tokens, commits each successful page, and only then persists the final
@@ -360,7 +385,9 @@ make proto                           # regenerate protobuf code (needs protoc; i
 - [docs/admin-guide.md](docs/admin-guide.md) — for the SDK maintainer and server operator: repository layout, building and regenerating protobuf code, the guard tests, CI and the release workflow, versioning, plugin packaging and installation, the process and security model, troubleshooting.
 - [docs/user-guide.md](docs/user-guide.md) — for plugin authors: from an empty directory to an installed plugin, then the reference for the manifest, settings, every capability, the host client, helpers, testing, packaging and versioning.
 - [docs/compatibility.md](docs/compatibility.md) — the compatibility boundary and versioning rules for the SDK and its consumers.
-- [docs/private-release.md](docs/private-release.md) — the step-by-step private release and rollback procedure.
+- [docs/private-release.md](docs/private-release.md) — the public GitHub release and immutable-tag procedure (historical filename).
+- [docs/auth-provider.md](docs/auth-provider.md) — typed sign-in, account checks and overlay identity.
+- [docs/storage-provider.md](docs/storage-provider.md) — separate native-storage protocol and host admission boundary.
 - [docs/runtime-host.md](docs/runtime-host.md) — the `RuntimeHost.v1` RPC reference.
 
 ## License

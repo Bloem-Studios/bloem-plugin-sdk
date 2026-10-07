@@ -6,6 +6,7 @@ option go_package = "github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginproto/s
 
 import "google/protobuf/struct.proto";
 import "silo/plugin/v1/network_access_provider.proto";
+import "silo/plugin/v1/request_router.proto";
 import "silo/plugin/v1/watch_sync_provider.proto";
 
 message SupportedPlatform {
@@ -131,12 +132,15 @@ message CapabilityDescriptor {
   // OAuth/OIDC flow modes the plugin supports. Only meaningful for
   // capabilities of type "auth_provider.v1". Defaults to ["password"]
   // host-side when absent (backward compat with password-only providers).
-  // Valid values: "password", "oauth2".
+  // Known values: "password", "oauth2". The vocabulary is open: hosts ignore
+  // modes they do not recognize, so list a mode older hosts understand too.
   repeated string auth_modes = 8;
 
-  // Optional URL to a logo for this auth provider, rendered in silo's
-  // login UI as the icon for a "Sign in with X" button. Plugin-served path
-  // (e.g., /api/v1/plugins/<install>/assets/whmcs-logo.svg).
+  // Optional absolute URL of an externally hosted logo for this auth
+  // provider's "Sign in with X" button. The manifest is fixed at build time
+  // and cannot know its installation id, so it cannot name a plugin-served
+  // asset. For an icon the plugin serves itself, set the "icon_url_path"
+  // global config key instead; see docs/auth-provider.md.
   string icon_url = 9;
 
   // Typed watch-provider contract metadata. Only meaningful for capabilities
@@ -148,6 +152,11 @@ message CapabilityDescriptor {
   // of type "network_access_provider.v1". The host lists available overlay
   // providers from this descriptor without launching the plugin.
   NetworkAccessProviderDescriptor network_access_provider = 11;
+
+  // Typed request-router contract metadata. Only meaningful for capabilities
+  // of type "request_router.v1". Optional: an absent descriptor declares no
+  // optional request-router features.
+  RequestRouterDescriptor request_router = 12;
 }
 
 // PluginPresentation describes a plugin for server operators and links them to

@@ -23,5 +23,4 @@ jobs:
 
       - run: ./scripts/verify-private-release.sh
       - run: GOWORK=off go test ./...
-      - run: GOWORK=off go build ./examples/hello-scheduled-task
-      - run: GOWORK=off go build ./examples/hello-runtime-host
+      - run: GOWORK=off go build ./examples/...

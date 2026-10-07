@@ -109,6 +109,121 @@ func TestValidateWatchSyncProviderRejectsOrderWithoutImport(t *testing.T) {
 	}
 }
 
+func TestLoadWatchSyncProviderRatingsOnly(t *testing.T) {
+	raw := []byte(`{
+	  "plugin_id":"silo.ratings", "version":"1.0.0", "silo_api_version":"v1",
+	  "capabilities":[{
+	    "type":"watch_sync_provider.v1", "id":"ratings", "display_name":"Ratings",
+	    "watch_sync_provider":{
+	      "auth_methods":["WATCH_SYNC_AUTH_METHOD_API_KEY"],
+	      "import_ratings":true,
+	      "export_ratings":true,
+	      "supported_media_types":["WATCH_SYNC_MEDIA_TYPE_MOVIE","WATCH_SYNC_MEDIA_TYPE_SERIES"],
+	      "max_batch_size":10
+	    }
+	  }]
+	}`)
+	manifest, err := publicmanifest.Load(raw)
+	if err != nil {
+		t.Fatalf("ratings-only provider should load: %v", err)
+	}
+	descriptor := manifest.GetCapabilities()[0].GetWatchSyncProvider()
+	if !descriptor.GetImportRatings() || !descriptor.GetExportRatings() ||
+		len(descriptor.GetSupportedMediaTypes()) != 2 ||
+		descriptor.GetSupportedMediaTypes()[1] != pluginv1.WatchSyncMediaType_WATCH_SYNC_MEDIA_TYPE_SERIES {
+		t.Fatalf("watch sync descriptor = %#v", descriptor)
+	}
+}
+
+func TestValidateWatchSyncProviderAllowsRatingsOnly(t *testing.T) {
+	for _, tc := range []struct {
+		name          string
+		importRatings bool
+		exportRatings bool
+	}{
+		{name: "import", importRatings: true},
+		{name: "export", exportRatings: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			manifest := validWatchSyncManifest()
+			descriptor := manifest.Capabilities[0].WatchSyncProvider
+			descriptor.ExportWatched = false
+			descriptor.ImportRatings = tc.importRatings
+			descriptor.ExportRatings = tc.exportRatings
+			if err := publicmanifest.Validate(manifest); err != nil {
+				t.Fatalf("ratings-only provider should be valid: %v", err)
+			}
+		})
+	}
+}
+
+func TestValidateWatchSyncProviderRejectsRatingsWithoutRateableMediaType(t *testing.T) {
+	for _, tc := range []struct {
+		name          string
+		importRatings bool
+		exportRatings bool
+	}{
+		{name: "import", importRatings: true},
+		{name: "export", exportRatings: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			manifest := validWatchSyncManifest()
+			descriptor := manifest.Capabilities[0].WatchSyncProvider
+			descriptor.ImportRatings = tc.importRatings
+			descriptor.ExportRatings = tc.exportRatings
+			descriptor.SupportedMediaTypes = []pluginv1.WatchSyncMediaType{
+				pluginv1.WatchSyncMediaType_WATCH_SYNC_MEDIA_TYPE_EPISODE,
+			}
+			if err := publicmanifest.Validate(manifest); err == nil {
+				t.Fatal("expected ratings with only EPISODE media to fail")
+			}
+		})
+	}
+}
+
+func TestValidateWatchSyncProviderAllowsEpisodeOnlyWithoutRatings(t *testing.T) {
+	manifest := validWatchSyncManifest()
+	manifest.Capabilities[0].WatchSyncProvider.SupportedMediaTypes = []pluginv1.WatchSyncMediaType{
+		pluginv1.WatchSyncMediaType_WATCH_SYNC_MEDIA_TYPE_EPISODE,
+	}
+	if err := publicmanifest.Validate(manifest); err != nil {
+		t.Fatalf("episode-only provider without ratings should be valid: %v", err)
+	}
+}
+
+func TestValidateWatchSyncProviderAllowsRatingsForRateableMediaTypes(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		mediaTypes []pluginv1.WatchSyncMediaType
+	}{
+		{name: "series", mediaTypes: []pluginv1.WatchSyncMediaType{
+			pluginv1.WatchSyncMediaType_WATCH_SYNC_MEDIA_TYPE_SERIES,
+		}},
+		{name: "episode and series", mediaTypes: []pluginv1.WatchSyncMediaType{
+			pluginv1.WatchSyncMediaType_WATCH_SYNC_MEDIA_TYPE_EPISODE,
+			pluginv1.WatchSyncMediaType_WATCH_SYNC_MEDIA_TYPE_SERIES,
+		}},
+		{name: "episode and movie", mediaTypes: []pluginv1.WatchSyncMediaType{
+			pluginv1.WatchSyncMediaType_WATCH_SYNC_MEDIA_TYPE_EPISODE,
+			pluginv1.WatchSyncMediaType_WATCH_SYNC_MEDIA_TYPE_MOVIE,
+		}},
+		{name: "unknown future type", mediaTypes: []pluginv1.WatchSyncMediaType{
+			pluginv1.WatchSyncMediaType(99),
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			manifest := validWatchSyncManifest()
+			descriptor := manifest.Capabilities[0].WatchSyncProvider
+			descriptor.ImportRatings = true
+			descriptor.ExportRatings = true
+			descriptor.SupportedMediaTypes = tc.mediaTypes
+			if err := publicmanifest.Validate(manifest); err != nil {
+				t.Fatalf("ratings provider should be valid: %v", err)
+			}
+		})
+	}
+}
+
 func validWatchSyncManifest() *pluginv1.PluginManifest {
 	return &pluginv1.PluginManifest{
 		PluginId: "silo.valid", Version: "1.0.0",
@@ -138,5 +253,85 @@ func TestValidateWatchSyncProviderRejectsDescriptorOnOtherCapability(t *testing.
 	}
 	if err := publicmanifest.Validate(manifest); err == nil {
 		t.Fatal("expected misplaced watch sync descriptor to fail")
+	}
+}
+
+func TestValidateWatchSyncProviderDroppedShows(t *testing.T) {
+	series := pluginv1.WatchSyncMediaType_WATCH_SYNC_MEDIA_TYPE_SERIES
+	movie := pluginv1.WatchSyncMediaType_WATCH_SYNC_MEDIA_TYPE_MOVIE
+	for _, tc := range []struct {
+		name    string
+		media   []pluginv1.WatchSyncMediaType
+		wantErr bool
+	}{
+		{name: "series", media: []pluginv1.WatchSyncMediaType{series}},
+		{name: "movie and series", media: []pluginv1.WatchSyncMediaType{movie, series}},
+		{name: "movie only", media: []pluginv1.WatchSyncMediaType{movie}, wantErr: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			manifest := validWatchSyncManifest()
+			descriptor := manifest.Capabilities[0].WatchSyncProvider
+			descriptor.ExportWatched = false
+			descriptor.SyncDropped = true
+			descriptor.SupportedMediaTypes = tc.media
+			err := publicmanifest.Validate(manifest)
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("Validate() error = %v, wantErr %t", err, tc.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidateWatchSyncProviderRatingExportRequiresWatched(t *testing.T) {
+	movie := pluginv1.WatchSyncMediaType_WATCH_SYNC_MEDIA_TYPE_MOVIE
+	series := pluginv1.WatchSyncMediaType_WATCH_SYNC_MEDIA_TYPE_SERIES
+	for _, tc := range []struct {
+		name          string
+		exportRatings bool
+		gated         []pluginv1.WatchSyncMediaType
+		wantErr       bool
+	}{
+		{name: "supported movie", exportRatings: true, gated: []pluginv1.WatchSyncMediaType{movie}},
+		{name: "without export ratings", gated: []pluginv1.WatchSyncMediaType{movie}, wantErr: true},
+		{name: "unsupported media type", exportRatings: true, gated: []pluginv1.WatchSyncMediaType{series}, wantErr: true},
+		{name: "unspecified", exportRatings: true, gated: []pluginv1.WatchSyncMediaType{pluginv1.WatchSyncMediaType_WATCH_SYNC_MEDIA_TYPE_UNSPECIFIED}, wantErr: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			manifest := validWatchSyncManifest()
+			descriptor := manifest.Capabilities[0].WatchSyncProvider
+			descriptor.ExportRatings = tc.exportRatings
+			descriptor.RatingExportRequiresWatched = tc.gated
+			err := publicmanifest.Validate(manifest)
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("Validate() error = %v, wantErr %t", err, tc.wantErr)
+			}
+		})
+	}
+}
+
+func TestLoadWatchSyncProviderDroppedAndRatingGate(t *testing.T) {
+	raw := []byte(`{
+	  "plugin_id":"silo.dropped", "version":"1.0.0", "silo_api_version":"v1",
+	  "capabilities":[{
+	    "type":"watch_sync_provider.v1", "id":"dropped", "display_name":"Dropped",
+	    "watch_sync_provider":{
+	      "auth_methods":["WATCH_SYNC_AUTH_METHOD_DEVICE_CODE"],
+	      "export_ratings":true,
+	      "sync_dropped":true,
+	      "rating_export_requires_watched":["WATCH_SYNC_MEDIA_TYPE_MOVIE"],
+	      "supported_media_types":["WATCH_SYNC_MEDIA_TYPE_MOVIE","WATCH_SYNC_MEDIA_TYPE_SERIES"],
+	      "max_batch_size":10
+	    }
+	  }]
+	}`)
+	manifest, err := publicmanifest.Load(raw)
+	if err != nil {
+		t.Fatalf("dropped provider should load: %v", err)
+	}
+	descriptor := manifest.GetCapabilities()[0].GetWatchSyncProvider()
+	gated := descriptor.GetRatingExportRequiresWatched()
+	if !descriptor.GetSyncDropped() || len(gated) != 1 ||
+		gated[0] != pluginv1.WatchSyncMediaType_WATCH_SYNC_MEDIA_TYPE_MOVIE {
+		t.Fatalf("watch sync descriptor = %#v", descriptor)
 	}
 }

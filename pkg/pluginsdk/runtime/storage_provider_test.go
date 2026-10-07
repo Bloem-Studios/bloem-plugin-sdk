@@ -3,6 +3,7 @@ package runtime
 import (
 	"context"
 	"net"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -84,5 +85,39 @@ func testStorageOptions(t *testing.T, device, storage bool) {
 	}
 	if err != nil || r.GetRevision() != 1 {
 		t.Fatalf("storage Describe: %v, %v", r, err)
+	}
+}
+
+// The private service must coexist with every optional public service on the
+// actual ServeManifest configuration, including the new Configure callback.
+func TestStorageOptionCombinesWithCurrentPublicServices(t *testing.T) {
+	var configured atomic.Bool
+	cfg, err := manifestServeConfig(networkAuthManifest(),
+		CapabilityServers{AuthProvider: onlyAuthProvider{}},
+		WithStorageProvider(storageStub{}),
+		WithWatchSyncDeviceAuthorization(deviceStub{}),
+		WithAuthProviderChecks(checksServer{name: "combined"}),
+		WithNetworkIdentityAuth(peerServer{name: "combined"}),
+		WithConfigure(func(context.Context, []*pluginv1.ConfigEntry) error {
+			configured.Store(true)
+			return nil
+		}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := serveConfigClient(t, cfg)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if _, err := client.Runtime().Configure(ctx, &pluginv1.ConfigureRequest{}); err != nil || !configured.Load() {
+		t.Fatalf("Configure callback: configured=%v, error=%v", configured.Load(), err)
+	}
+	if response, err := storagev1.NewStorageProviderClient(client.Conn()).Describe(ctx, &storagev1.DescribeRequest{}); err != nil || response.GetRevision() != 1 {
+		t.Fatalf("storage Describe: %v, %v", response, err)
+	}
+	if response, err := client.AuthProviderChecks().EndSessionUrl(ctx, &pluginv1.AuthEndSessionUrlRequest{}); err != nil || response.GetUrl() != "https://id.example/logout?by=combined" {
+		t.Fatalf("auth checks: %v, %v", response, err)
+	}
+	if response, err := client.NetworkIdentityAuth().AuthenticatePeer(ctx, &pluginv1.AuthenticatePeerRequest{PeerAddress: "192.0.2.1"}); err != nil || response.GetExternalSubject() != "combined|192.0.2.1" {
+		t.Fatalf("network identity: %v, %v", response, err)
 	}
 }

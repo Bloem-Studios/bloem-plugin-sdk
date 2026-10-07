@@ -1,5 +1,9 @@
 # Network access providers (`network_access_provider.v1`)
 
+Version references in this guide identify upstream Silo contract additions.
+Bloem SDK v0.24.0 includes them through upstream v0.23.0; see
+[release lineage](compatibility.md#release-lineage).
+
 A network access provider gives a Silo deployment an overlay-network identity
 (Tailscale via tsnet first; NetBird later) so clients reach Silo without port
 forwarding or a public reverse proxy. The plugin owns the overlay client and a
@@ -76,7 +80,7 @@ The host never writes it.
 | `host_role` | `api` or `proxy`. |
 | `host_name` | Node name on proxies, server name on the API host. |
 | `node_id` | `stream_nodes.id` on proxies, `0` on the API host. |
-| `ingress_token` | Per-process-start secret; see below. |
+| `ingress_token` | Secret for this installation's process, reissued at every start; see below. |
 | `listeners` | Local listeners to expose: `name`, loopback `address`, `default_port`. |
 
 `listeners` always contains `api`. On the API host it also carries `jellyfin`
@@ -100,14 +104,33 @@ For every request the plugin forwards to a host listener:
 - Set `X-Silo-Ingress-Token` to the value from `GetHostInfo`, replacing any
   client-supplied value; the host answers 403 when the header carries more
   than one value.
+- Remove any client-supplied `X-Silo-Ingress-Peer`, then set it to the overlay
+  peer's IP address (no port) when the plugin can identify that peer on its
+  overlay. Never set it for a connection that did not come from an overlay
+  peer, such as traffic a public relay forwards. Leave it out, too, for a
+  request that carries another proxy's forwarding headers (`Forwarded`,
+  `X-Forwarded-For`, `Via` and the like): the connection then comes from the
+  relay's device, whose owner is not the person making the request. Headers
+  cannot reveal a relay that works below HTTP, such as a subnet router that
+  masquerades its LAN into the overlay or a TCP port forwarder, so also leave
+  the peer out for a device the overlay reports as routing traffic for others,
+  for example one with approved subnet routes. A forwarder the overlay cannot
+  see stays undetectable: whoever reaches the node through it counts as the
+  device's owner.
 
-The host validates the token, strips the header, and records the request's
-access path so stream URLs point tailnet clients at overlay origins. The
+The host validates the token, strips both headers, and records the request's
+access path so stream URLs point tailnet clients at overlay origins. It reads
+the peer only from a request whose token is valid; it never authorizes
+anything by itself. A plugin that declares the `network` auth mode turns a
+peer into a sign-in through `NetworkIdentityAuth`
+([auth-provider.md](auth-provider.md#network-identity-networkidentityauth)). The
 plugin's loopback source is in the host's default trusted-proxy list, so the
 forwarded headers are honoured.
 
-The ingress token rotates on every host process start and is compared in
-constant time. Keep it in memory only; never log or persist it. After a host
+The host issues each installation's process its own ingress token at every
+start and compares it in constant time. A token maps back to the one
+installation it was issued to, and the host hands a request's peer only to
+that installation. Keep it in memory only; never log or persist it. After a host
 or plugin restart, call `GetHostInfo` again before proxying; a stale token is
 rejected with `403`.
 

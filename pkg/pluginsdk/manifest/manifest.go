@@ -7,11 +7,13 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"slices"
 	"strings"
 	"unicode"
 	"unicode/utf8"
 
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/structpb"
 
 	pluginv1 "github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginproto/silo/plugin/v1"
 	"github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/capability"
@@ -35,6 +37,25 @@ const (
 	maxPresentationURLBytes         = 2048
 	maxPresentationIdentityRunes    = 120
 )
+
+// Auth modes this SDK knows for an auth_provider.v1 capability's auth_modes.
+// An empty list means password only. The vocabulary is open: Validate accepts
+// other non-empty modes so a plugin built against a newer SDK still loads on
+// an older host, which ignores modes it does not recognize.
+const (
+	AuthModePassword = "password"
+	AuthModeOAuth2   = "oauth2"
+	// AuthModeNetwork signs people in from the overlay network the plugin's
+	// network_access_provider.v1 capability fronts (NetworkIdentityAuth). It
+	// cannot be combined with password or oauth2, and the manifest must also
+	// declare network_access_provider.v1.
+	AuthModeNetwork = "network"
+)
+
+// AuthProviderConnectionTestKey is the auth_provider.v1 capability metadata
+// key that declares support for AuthProviderChecks.TestConnection. Its value
+// must be a boolean.
+const AuthProviderConnectionTestKey = "connection_test"
 
 func knownCapabilityTypeSet() map[string]struct{} {
 	out := make(map[string]struct{}, len(capability.KnownTypes))
@@ -116,6 +137,15 @@ func Validate(manifest *pluginv1.PluginManifest) error {
 		if err := validateNetworkAccessCapability(capability); err != nil {
 			return err
 		}
+		if err := validateRequestRouterCapability(capability); err != nil {
+			return err
+		}
+		if err := validateAuthProviderCapability(capability); err != nil {
+			return err
+		}
+	}
+	if err := validateNetworkAuthPairing(manifest); err != nil {
+		return err
 	}
 	for _, schema := range manifest.GlobalConfigSchema {
 		if err := validateConfigSchema(schema); err != nil {
@@ -164,7 +194,9 @@ func validateWatchSyncCapability(descriptor *pluginv1.CapabilityDescriptor) erro
 		!watchSync.GetImportFavorites() && !watchSync.GetExportFavorites() &&
 		!watchSync.GetRemoveFavorites() && !watchSync.GetImportWatchlist() &&
 		!watchSync.GetExportWatchlist() && !watchSync.GetRemoveWatchlist() &&
-		!watchSync.GetScrobblePlayback() {
+		!watchSync.GetScrobblePlayback() &&
+		!watchSync.GetImportRatings() && !watchSync.GetExportRatings() &&
+		!watchSync.GetSyncDropped() {
 		return fmt.Errorf("plugin capability %q: at least one watch sync operation is required", descriptor.GetId())
 	}
 	if watchSync.GetProvidesWatchlistOrder() && !watchSync.GetImportWatchlist() {
@@ -181,12 +213,52 @@ func validateWatchSyncCapability(descriptor *pluginv1.CapabilityDescriptor) erro
 			return fmt.Errorf("plugin capability %q: watch sync media type cannot be unspecified", descriptor.GetId())
 		}
 	}
+	// supported_media_types is non-empty here; an empty list is rejected above.
+	if (watchSync.GetImportRatings() || watchSync.GetExportRatings()) &&
+		!watchSyncSupportsRatedMediaType(watchSync.GetSupportedMediaTypes()) {
+		return fmt.Errorf("plugin capability %q: watch sync ratings require a MOVIE or SERIES supported media type", descriptor.GetId())
+	}
+	if watchSync.GetSyncDropped() && !watchSyncSupportsMediaType(watchSync.GetSupportedMediaTypes(),
+		pluginv1.WatchSyncMediaType_WATCH_SYNC_MEDIA_TYPE_SERIES) {
+		return fmt.Errorf("plugin capability %q: watch sync dropped shows require the SERIES supported media type", descriptor.GetId())
+	}
+	if len(watchSync.GetRatingExportRequiresWatched()) > 0 && !watchSync.GetExportRatings() {
+		return fmt.Errorf("plugin capability %q: rating_export_requires_watched requires export_ratings", descriptor.GetId())
+	}
+	for _, mediaType := range watchSync.GetRatingExportRequiresWatched() {
+		if !watchSyncSupportsMediaType(watchSync.GetSupportedMediaTypes(), mediaType) {
+			return fmt.Errorf("plugin capability %q: rating_export_requires_watched media type %s is not a supported media type", descriptor.GetId(), mediaType)
+		}
+	}
 	for _, namespace := range watchSync.GetExternalIdNamespaces() {
 		if !watchSyncSlugPattern.MatchString(namespace) {
 			return fmt.Errorf("plugin capability %q: invalid external id namespace %q", descriptor.GetId(), namespace)
 		}
 	}
 	return nil
+}
+
+// watchSyncSupportsMediaType reports whether want is a declared media type.
+// UNSPECIFIED is never declared; validation rejects it above.
+func watchSyncSupportsMediaType(mediaTypes []pluginv1.WatchSyncMediaType, want pluginv1.WatchSyncMediaType) bool {
+	return want != pluginv1.WatchSyncMediaType_WATCH_SYNC_MEDIA_TYPE_UNSPECIFIED && slices.Contains(mediaTypes, want)
+}
+
+// watchSyncSupportsRatedMediaType reports whether a ratings-capable provider
+// lists a media type the host can rate. A value this SDK does not define counts
+// as rateable so that a descriptor built against a newer SDK stays valid here.
+func watchSyncSupportsRatedMediaType(mediaTypes []pluginv1.WatchSyncMediaType) bool {
+	for _, mediaType := range mediaTypes {
+		switch mediaType {
+		case pluginv1.WatchSyncMediaType_WATCH_SYNC_MEDIA_TYPE_MOVIE,
+			pluginv1.WatchSyncMediaType_WATCH_SYNC_MEDIA_TYPE_SERIES:
+			return true
+		}
+		if _, known := pluginv1.WatchSyncMediaType_name[int32(mediaType)]; !known {
+			return true
+		}
+	}
+	return false
 }
 
 func validateNetworkAccessCapability(descriptor *pluginv1.CapabilityDescriptor) error {
@@ -204,6 +276,156 @@ func validateNetworkAccessCapability(descriptor *pluginv1.CapabilityDescriptor) 
 		return fmt.Errorf("plugin capability %q: network access provider must be a path-safe lowercase slug", descriptor.GetId())
 	}
 	return nil
+}
+
+// validateRequestRouterCapability keeps the descriptor optional so request
+// routers built before it existed stay valid.
+func validateRequestRouterCapability(descriptor *pluginv1.CapabilityDescriptor) error {
+	if descriptor.GetType() != capability.RequestRouter && descriptor.GetRequestRouter() != nil {
+		return fmt.Errorf("plugin capability %q: request_router descriptor requires type %q", descriptor.GetId(), capability.RequestRouter)
+	}
+	if err := ValidateRequestRouterWording(descriptor.GetRequestRouter().GetWording()); err != nil {
+		return fmt.Errorf("plugin capability %q: %w", descriptor.GetId(), err)
+	}
+	return nil
+}
+
+// Limits on RequestRouterWording values, in characters.
+const (
+	MaxRequestWordingLabelRunes  = 24
+	MaxRequestWordingDetailRunes = 140
+)
+
+// ValidateRequestRouterWording checks that every wording value is a single
+// line within its limit, with no leading or trailing whitespace. An absent
+// wording is valid. Hosts may call it on stored descriptors and fall back to
+// their own words when it fails.
+func ValidateRequestRouterWording(wording *pluginv1.RequestRouterWording) error {
+	if wording == nil {
+		return nil
+	}
+	if err := validateWordingValue("step", wording.GetStep(), MaxRequestWordingLabelRunes); err != nil {
+		return err
+	}
+	if err := validateStatusWording("queued.", wording.GetQueued()); err != nil {
+		return err
+	}
+	return validateStatusWording("downloading.", wording.GetDownloading())
+}
+
+// ValidateRequestStatusWording checks one status's wording against the same
+// rules as ValidateRequestRouterWording. Hosts call it on the wording a
+// plugin reports for a target and drop wording that fails.
+func ValidateRequestStatusWording(wording *pluginv1.RequestStatusWording) error {
+	return validateStatusWording("", wording)
+}
+
+func validateStatusWording(prefix string, wording *pluginv1.RequestStatusWording) error {
+	if err := validateWordingValue(prefix+"label", wording.GetLabel(), MaxRequestWordingLabelRunes); err != nil {
+		return err
+	}
+	return validateWordingValue(prefix+"detail", wording.GetDetail(), MaxRequestWordingDetailRunes)
+}
+
+func validateWordingValue(name, value string, limit int) error {
+	if value != strings.TrimSpace(value) {
+		return fmt.Errorf("request_router wording %s must not have leading or trailing whitespace", name)
+	}
+	if utf8.RuneCountInString(value) > limit {
+		return fmt.Errorf("request_router wording %s exceeds %d characters", name, limit)
+	}
+	if hasDisallowedControl(value, false) {
+		return fmt.Errorf("request_router wording %s contains control characters", name)
+	}
+	// Unicode line and paragraph separators break a line without being
+	// control characters.
+	if strings.ContainsFunc(value, func(r rune) bool { return unicode.In(r, unicode.Zl, unicode.Zp) }) {
+		return fmt.Errorf("request_router wording %s must be a single line", name)
+	}
+	return nil
+}
+
+// validateAuthProviderCapability checks the auth_provider.v1 fields the host
+// acts on. Other capability types keep their free-form metadata.
+func validateAuthProviderCapability(descriptor *pluginv1.CapabilityDescriptor) error {
+	if descriptor.GetType() != capability.AuthProvider {
+		return nil
+	}
+	seen := make(map[string]struct{}, len(descriptor.GetAuthModes()))
+	for _, mode := range descriptor.GetAuthModes() {
+		if strings.TrimSpace(mode) == "" {
+			return fmt.Errorf("plugin capability %q: empty auth mode", descriptor.GetId())
+		}
+		// Unknown modes are allowed, but a case variant of a known one is a
+		// typo the host would silently ignore.
+		for _, known := range []string{AuthModePassword, AuthModeOAuth2, AuthModeNetwork} {
+			if mode != known && strings.EqualFold(mode, known) {
+				return fmt.Errorf("plugin capability %q: auth mode %q must be spelled %q", descriptor.GetId(), mode, known)
+			}
+		}
+		if _, dup := seen[mode]; dup {
+			return fmt.Errorf("plugin capability %q: duplicate auth mode %q", descriptor.GetId(), mode)
+		}
+		seen[mode] = struct{}{}
+	}
+	// A network provider never takes a password or runs a browser flow. Only
+	// the modes this SDK knows are refused beside it, so a newer mode that a
+	// later SDK allows with network still loads here.
+	if _, network := seen[AuthModeNetwork]; network {
+		for _, credentials := range []string{AuthModePassword, AuthModeOAuth2} {
+			if _, ok := seen[credentials]; ok {
+				return fmt.Errorf("plugin capability %q: auth mode %q cannot be combined with %q", descriptor.GetId(), AuthModeNetwork, credentials)
+			}
+		}
+	}
+	if value, ok := descriptor.GetMetadata().GetFields()[AuthProviderConnectionTestKey]; ok {
+		if _, isBool := value.GetKind().(*structpb.Value_BoolValue); !isBool {
+			return fmt.Errorf("plugin capability %q: metadata %q must be a boolean", descriptor.GetId(), AuthProviderConnectionTestKey)
+		}
+	}
+	return nil
+}
+
+// validateNetworkAuthPairing requires a manifest with a "network" auth mode
+// to declare network_access_provider.v1 too: the host only hands a network
+// provider peers that arrived through the plugin's own overlay listeners.
+func validateNetworkAuthPairing(manifest *pluginv1.PluginManifest) error {
+	var networkAuth *pluginv1.CapabilityDescriptor
+	hasNetworkAccess := false
+	for _, descriptor := range manifest.GetCapabilities() {
+		if AuthProviderUsesNetworkIdentity(descriptor) && networkAuth == nil {
+			networkAuth = descriptor
+		}
+		if descriptor.GetType() == capability.NetworkAccessProvider {
+			hasNetworkAccess = true
+		}
+	}
+	if networkAuth != nil && !hasNetworkAccess {
+		return fmt.Errorf("plugin capability %q: auth mode %q requires a %q capability in the same manifest",
+			networkAuth.GetId(), AuthModeNetwork, capability.NetworkAccessProvider)
+	}
+	return nil
+}
+
+// AuthProviderUsesNetworkIdentity reports whether an auth_provider.v1
+// capability declares the "network" auth mode, so the host reaches it through
+// NetworkIdentityAuth and never sends it a password.
+func AuthProviderUsesNetworkIdentity(descriptor *pluginv1.CapabilityDescriptor) bool {
+	if descriptor.GetType() != capability.AuthProvider {
+		return false
+	}
+	return slices.Contains(descriptor.GetAuthModes(), AuthModeNetwork)
+}
+
+// AuthProviderSupportsConnectionTest reports whether an auth_provider.v1
+// capability declares AuthProviderChecks.TestConnection support through its
+// "connection_test" metadata. Hosts should call TestConnection only when this
+// is true.
+func AuthProviderSupportsConnectionTest(descriptor *pluginv1.CapabilityDescriptor) bool {
+	if descriptor.GetType() != capability.AuthProvider {
+		return false
+	}
+	return descriptor.GetMetadata().GetFields()[AuthProviderConnectionTestKey].GetBoolValue()
 }
 
 // ValidateCatalogPresentation applies the stricter presentation contract used

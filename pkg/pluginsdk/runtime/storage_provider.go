@@ -13,7 +13,11 @@ func WithStorageProvider(server storagev1.StorageProviderServer) ServeManifestOp
 }
 
 func manifestPluginSet(servers CapabilityServers, options serveManifestOptions) plugin.PluginSet {
-	set := DefaultPluginSetWithWatchSyncDeviceAuthorization(servers, options.watchSyncDeviceAuthorization)
+	set := pluginSetWithOptionalServices(servers, optionalServices{
+		watchSyncDeviceAuthorization: options.watchSyncDeviceAuthorization,
+		authProviderChecks:           options.authProviderChecks,
+		networkIdentityAuth:          options.networkIdentityAuth,
+	})
 	if options.storageProvider != nil {
 		set[PluginSetName] = &grpcPluginWithStorage{
 			Plugin:     set[PluginSetName],

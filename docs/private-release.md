@@ -1,13 +1,13 @@
-# Private releases
+# SDK releases
 
-Bloem Plugin SDK releases are GitHub releases inside the existing private
-`Bloem-Studios/bloem-plugin-sdk` repository. The release workflow never changes
-repository visibility and does not publish the module to a public package
-registry. It runs only when an operator explicitly pushes a `v*` tag, checks
-out and tests that exact tag, and then creates the corresponding private GitHub
-release.
+Bloem Plugin SDK releases are GitHub releases in the public
+`Bloem-Studios/bloem-plugin-sdk` repository. Go consumers fetch tagged modules
+without credentials or `GOPRIVATE`. The release workflow does not change
+repository visibility or push to another registry. An operator pushes a reviewed
+`v*` tag; the workflow tests that exact commit and creates its GitHub release.
+This document and the guard scripts retain their historical filenames.
 
-## Create a private release
+## Create a release
 
 `v0.13.2` is an immutable failed historical candidate and must never be reused
 or moved. `v0.13.3` is the first verified Bloem Plugin SDK release. For each
@@ -27,7 +27,7 @@ test -z "$(git status --porcelain)"
 test -z "$(git tag --list "$RELEASE_TAG")"
 remote_tags="$(git ls-remote --tags origin "refs/tags/$RELEASE_TAG" "refs/tags/$RELEASE_TAG^{}")"
 test -z "$remote_tags"
-test "$(gh api repos/Bloem-Studios/bloem-plugin-sdk --jq '.visibility')" = private
+test "$(gh api repos/Bloem-Studios/bloem-plugin-sdk --jq '.visibility')" = public
 if release_lookup="$(gh api --include "repos/Bloem-Studios/bloem-plugin-sdk/releases/tags/$RELEASE_TAG" 2>&1)"; then
   echo "release $RELEASE_TAG already exists" >&2
   exit 1
@@ -46,11 +46,11 @@ gh api repos/Bloem-Studios/bloem-plugin-sdk --jq '.visibility'
 ```
 
 The clean-worktree check and all three uniqueness checks must succeed before
-tagging. After the workflow finishes, the final command must print `private`.
+tagging. After the workflow finishes, the final command must print `public`.
 
 ## Roll back a release
 
-Delete the private GitHub release and its tag only if no downstream repository
-has pinned that tag. Delete the remote tag and then the local tag after removing
-the release. If any downstream repository has already pinned it, preserve the
-published tag and issue a new patch tag with the correction instead.
+Preserve published tags. Public Go proxies and checksum databases may already
+have cached a release even when no known downstream repository pins it. Publish
+a corrected patch version and, if necessary, retract the affected version in
+`go.mod`; do not move or reuse its tag.
