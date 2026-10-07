@@ -158,6 +158,9 @@ prints a go-plugin notice and exits; that is expected (see the [Admin Guide](adm
 
 ### 2.5 Package and install
 
+This walkthrough installs an ordinary capability plugin. Storage-only providers use
+`capabilities: []` and the separate [native approval and binary upload path](storage-provider.md#package-approval-and-native-installation).
+
 ```sh
 ./plugin manifest > manifest.json      # manifest with the real checksum
 zip plugin.zip manifest.json plugin    # both entries at the zip root
@@ -279,7 +282,7 @@ it is the easy way to satisfy an interface while you implement methods one at a 
 | `checksum` | string | server | Hex SHA-256 of the executable. Filled in at run time by `LoadWithChecksum`; the placeholder `__CHECKSUM__` is conventional in source. |
 | `silo_api_version` | string | server | `"v1"`. The server rejects any other value. |
 | `supported_platforms` | `[{os, arch}]` | server | Go `GOOS`/`GOARCH` pairs the binary runs on. |
-| `capabilities` | `[CapabilityDescriptor]` | server (≥1) | What the plugin serves (4.2). |
+| `capabilities` | `[CapabilityDescriptor]` | ordinary server install (≥1) | Public services (4.2). Native storage-only providers use `[]` and separate host admission. |
 | `global_config_schema` | `[ConfigSchema]` | no | Server-wide settings an administrator fills in (5). |
 | `user_config_schema` | `[ConfigSchema]` | no | Per-user settings (5). |
 | `http_routes` | `[HttpRouteDescriptor]` | no | Routes served by `http_routes.v1` (6.3). |
@@ -428,8 +431,9 @@ err := config.ValidateManifestGlobalValue(m, "connection", map[string]any{"base_
 An undeclared key fails with `… key "x" is not declared in the manifest schema`; a schema that
 does not compile fails with `compile …`; a bad value fails with `validate …`.
 
-To persist a value the administrator did not enter (a token you obtained, a cursor), call
-`runtimehost.Client.SetGlobalConfigEntry(ctx, key, map[string]any)`.
+Ordinary plugins can persist a value the administrator did not enter (a token, a cursor) through
+`runtimehost.Client.SetGlobalConfigEntry(ctx, key, map[string]any)`. Native storage providers have
+no general RuntimeHost broker; use their [authorized configuration lifecycle](storage-provider.md#replace-source-configuration).
 
 ---
 
@@ -839,6 +843,8 @@ The SDK ships no fake server. Code that needs `runtimehost` should take the clie
 
 ### 10.2 Against a real server
 
+For ordinary capability plugins:
+
 1. Build for the server's platform (Linux/amd64 for most containers) as in 2.4.
 2. Package and upload (2.5, 11). Install succeeds without a restart.
 3. Watch the server log: your `hclog` output appears there, together with any handshake error.
@@ -854,6 +860,10 @@ difference is in your plugin, not the transport.
 ---
 
 ## 11. Packaging and sideloading
+
+This section covers ordinary capability plugins. Native storage requires an approved
+manifest/checksum/platform tuple and a [raw-binary native upload](storage-provider.md#package-approval-and-native-installation),
+with no public capabilities, HTTP routes or assets.
 
 The package is a zip with `manifest.json` and an executable named exactly `plugin` at the root, plus
 every file listed in `assets`. A repeatable script:

@@ -385,13 +385,16 @@ providers without general RuntimeHost callbacks. See [storage-provider.md](stora
 
 ## Part 5 — Packaging, installation and the security boundary
 
-This part describes what the Bloem server does with a plugin. The behaviour lives in the server
-repository (`internal/plugins` and `internal/pluginhost`); it is summarised here because SDK
-maintainers and server operators both need it, and because the SDK's helpers exist to satisfy it.
+This part describes ordinary capability plugins. The behaviour lives in the server repository
+(`internal/plugins` and `internal/pluginhost`). Native storage has a separate approved-artifact
+registry, binary upload and configuration lifecycle; follow the
+[native-storage installation recipe](storage-provider.md#package-approval-and-native-installation).
+That path requires `capabilities: []`, no HTTP routes and no assets; the ordinary ZIP upload
+and at-least-one-capability rule below do not apply to it.
 
 ### 5.1 The plugin package
 
-A plugin package is a **zip archive** with these entries at the root (no sub-directory):
+An ordinary plugin package is a **zip archive** with these entries at the root (no sub-directory):
 
 | Entry | Required | Content |
 |---|---|---|
@@ -421,7 +424,7 @@ the manifest's `presentation` block, which is self-declared.
 
 ### 5.2 How a plugin gets onto a server
 
-Two paths exist, both administrator-only:
+For ordinary capability plugins, two paths exist, both administrator-only:
 
 - **Catalog install.** The server's plugin catalog (`plugin_repositories`) points at packages by
   URL and checksum; the admin picks one in **Admin → Plugins**. The catalog service compares
@@ -483,8 +486,10 @@ needs at run time arrives through gRPC:
 - Per-RPC request fields for capability-specific and connection-specific values.
 - `RuntimeHost.SetGlobalConfigEntry` when the plugin wants to persist a value the admin did not set.
 
-Plugin authors are free to read their own environment variables, but the server sets none besides
-the handshake cookie.
+Ordinary plugins may read their own environment variables; do not assume credentials are
+available from the host environment. Native storage processes receive a small explicit environment
+and authorized `Runtime.Configure` values, without a general RuntimeHost broker. Their configuration
+must use the [native configuration route](storage-provider.md#replace-source-configuration).
 
 ### 5.6 Logs and diagnostics
 
@@ -516,7 +521,7 @@ the handshake cookie.
 | Upload rejected: `plugin manifest supported_platforms is required` | The SDK validator allows an empty list; the server does not. | Add `"supported_platforms": [{"os": "linux", "arch": "amd64"}]` to `manifest.json`. |
 | Upload rejected: `plugin archive is missing plugin binary` | The executable is not named `plugin`, or the zip has a top-level folder. | `zip plugin.zip manifest.json plugin` from inside the build directory. |
 | Server refuses install because of the API version | `silo_api_version` is missing or not `v1`. | Set it to `"v1"`. |
-| `runtime.Host()` returns `nil` inside a handler | `BindHostBroker` has not been called yet (very early in start-up), the `Runtime` server does not implement it, or the broker dial failed. | Embed `runtimedefault.Server` or use `ServeManifest`; treat `nil` as transient and retry later. |
+| `runtime.Host()` returns `nil` inside an ordinary capability handler | `BindHostBroker` has not been called yet (very early in start-up), the `Runtime` server does not implement it, or the broker dial failed. | Embed `runtimedefault.Server` or use `ServeManifest`; treat `nil` as transient and retry later. Native storage intentionally has no general broker; use its authorized configuration. |
 | Every `RuntimeHost` call after the first hangs | A plugin dialled the broker itself per call. | Always go through `runtime.Host()`, which caches one client on the single stream the server listens on. |
 | A plugin compiled against a newer SDK fails on an older server | It uses a `RuntimeHost` RPC or capability the server does not have. | Check the server's SDK tag; keep additive features optional or gate on `ListInstalledPlugins` / errors. |
 

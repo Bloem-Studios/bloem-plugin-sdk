@@ -2,7 +2,12 @@
 
 This executable exercises the [native-storage contract](../../docs/storage-provider.md).
 It creates an EPUB in memory and never connects to a storage backend. It is a
-conformance fixture, not a production storage plugin or catalog package.
+conformance fixture, not a production storage plugin or catalog package. It has
+no backend client, credential schema or `WithConfigure` callback. To create a real
+provider, follow the [published SDK authoring and configuration recipe](../../docs/storage-provider.md#create-a-provider-with-the-published-sdk)
+and implement the backend operations; do not copy its intentional fault behavior.
+Native installation uses [approved raw binaries](../../docs/storage-provider.md#package-approval-and-native-installation),
+not the ordinary plugin ZIP upload.
 
 Commands assume the repository root is the working directory:
 

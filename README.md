@@ -65,8 +65,10 @@ speak them: the Go module path `github.com/Bloem-Studios/bloem-plugin-sdk`, the 
 
 ## Quick start
 
-Your first plugin in five steps (Go 1.26, Git, and a Bloem server you may install plugins on;
-the full walkthrough is in the [User Guide](docs/user-guide.md#2-your-first-plugin)).
+Your first ordinary capability plugin in five steps (Go 1.26, Git, and a Bloem server you may
+install plugins on; the full walkthrough is in the [User Guide](docs/user-guide.md#2-your-first-plugin)).
+For a storage-only plugin, use the [native-storage authoring and installation guide](docs/storage-provider.md):
+it supports `capabilities: []` and requires a host-approved artifact through separate native routes.
 
 1. **Create the module and add the SDK.** The repository is public, so `go get` works without
    credentials or `GOPRIVATE`.
@@ -94,7 +96,7 @@ the full walkthrough is in the [User Guide](docs/user-guide.md#2-your-first-plug
    ./plugin manifest        # prints the manifest with the real checksum
    ```
 
-5. **Package and install.** The package is a zip with `manifest.json` and an executable named
+5. **Package and install the ordinary plugin.** The package is a zip with `manifest.json` and an executable named
    exactly `plugin` at the root; upload it to the server's admin API.
 
    ```sh
@@ -110,7 +112,8 @@ the full walkthrough is in the [User Guide](docs/user-guide.md#2-your-first-plug
 
 ## Packages
 
-- `github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginproto/silo/plugin/v1` — generated protobuf code.
+- `github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginproto/silo/plugin/v1` — generated public protobuf code.
+- `github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginproto/bloem/plugin/v1` — generated native-storage protobuf code.
 - `github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/capability` — stable capability type constants for manifests and peer discovery.
 - `github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/config` — config-schema helpers.
 - `github.com/Bloem-Studios/bloem-plugin-sdk/pkg/pluginsdk/convert` — type conversions.
@@ -140,11 +143,11 @@ The SDK preserves these public capability identifiers; availability depends on t
 - `audiobook_backend.v1` (constant only; no service definition ships in this SDK)
 - `ebook_backend.v1` (constant only; no service definition ships in this SDK)
 
-Plugins implement one or more, advertise them in `manifest.json`, and serve them over gRPC. A manifest that names any other type fails validation with `unknown type`.
+Ordinary capability plugins implement one or more, advertise them in `manifest.json`, and serve them over gRPC. A manifest that names any other type fails validation with `unknown type`. Native storage uses the separate `StorageProvider` service and an empty capability list; see [native storage](docs/storage-provider.md).
 
 ## Author workflow
 
-A typical plugin:
+A typical ordinary capability plugin:
 
 1. Defines a `manifest.json` using the protobuf-derived schema.
 2. Exposes a `Runtime` gRPC server plus one or more capability servers.
