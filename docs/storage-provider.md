@@ -133,22 +133,25 @@ by an unpinned download is not by itself that guarantee. Advertise
 host consumer refuses providers that report false. The SDK does not certify an
 S3 endpoint or implement general media playback in the host.
 
-[Bookwarehouse](https://github.com/RXWatcher/bookwarehouse) can be adapted through
-its `GET /api/v1/books`, `GET /api/v1/books/{id}` and
-`GET /api/v1/books/{id}/download` endpoints using the `X-API-Key` header.
+A Bookwarehouse adapter can use `GET /api/v1/books`,
+`GET /api/v1/books/{id}` and `GET /api/v1/books/{id}/download` with the
+`X-API-Key` header and the corresponding book-read/download permissions.
 Stable book IDs and metadata fields `file_hash`, `file_size` and `file_format`
-can inform entry mapping. At the inspected Bookwarehouse revision
-[`7deaffa`](https://github.com/RXWatcher/bookwarehouse/tree/7deaffa0601099b3de874dfb9400b7a532f94b3a),
-[the download handler](https://github.com/RXWatcher/bookwarehouse/blob/7deaffa0601099b3de874dfb9400b7a532f94b3a/internal/api/handlers/books.go#L719)
-streams the current storage object with status 200; it does not enforce Range,
-If-Match or a requested revision. Its
-[S3 read](https://github.com/RXWatcher/bookwarehouse/blob/7deaffa0601099b3de874dfb9400b7a532f94b3a/internal/storage/s3.go#L390)
-selects bucket and key without a version or condition. A direct streaming wrapper
-therefore cannot claim pinned reads merely because `file_hash` is present.
-It needs an upstream immutable/conditional byte API or a separately designed,
-bounded, verified immutable snapshot adapter before advertising that guarantee.
-The SDK ships neither adapter. `ebook_backend.v1` is only a public constant;
-there is no ebook-backend service definition to implement in this release.
+can inform entry mapping. Verify the API version exposed by the target
+Bookwarehouse deployment before implementing the adapter.
+
+The current target supports single byte ranges: a successful partial download
+returns `206` with `Content-Range`, a full download returns `200`, and an
+unsatisfiable range returns `416`. It does not register HEAD for the ebook
+download route. Its download path does not enforce `If-Match`, `If-Range` or a
+requested immutable revision, and its S3 read selects the current bucket/key
+with an optional range rather than a pinned object version. Range support and
+metadata `file_hash` therefore do not by themselves establish pinned reads.
+The adapter needs an upstream immutable/conditional byte API or a separately
+designed, bounded, verified immutable snapshot strategy before advertising that
+guarantee. The SDK ships neither adapter. `ebook_backend.v1` is only a public
+constant; there is no ebook-backend service definition to implement in this
+release.
 
 ## Package, approval and native installation
 
