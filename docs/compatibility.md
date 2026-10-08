@@ -20,15 +20,26 @@ The compatibility boundary includes:
 - generic capability metadata conversion helpers in `pkg/pluginsdk/convert`
 - canonical image-variant strings in `pkg/pluginsdk/imagevariant`
 
+`WatchSyncAuthenticatedContext.connection_settings` (Silo SDK v0.24.0, Bloem
+SDK v0.26.0) is a map, so it has no presence: a host that predates it sends an
+empty map. A plugin must treat a missing key as the setting's
+default rather than as an error. A host skips a declared setting whose type it
+does not know, including one an older SDK decoded as `UNSPECIFIED`, and sends no
+value for it.
+
 ## Release lineage
 
 Bloem `v0.16.1` contains the compatible upstream Silo `v0.16.1` public contract.
 Bloem `v0.24.0` carries the public contract and helper/runtime changes through
 Silo `v0.23.0` (`96074c2c57bb726ce4cedcb2cb70434a5b1b9667`), plus Bloem's separate
-native-storage service. The version numbers identify different modules; a Bloem
+native-storage service. Bloem `v0.25.0` adds ebook metadata, cover entries and a
+change feed to native-storage listings. Bloem `v0.26.0` carries the public
+contract through Silo `v0.24.0` (`f9827a3a7efe15d2eb6612615508a9be335aa38f`):
+watch-sync connection settings and the documented scan-source contract with its
+`hello-scan-source` example. The version numbers identify different modules; a Bloem
 host or plugin does not need matching module versions merely to share the wire.
 
-The current Bloem Server pins `github.com/Silo-Server/silo-plugin-sdk v0.23.0`
+The current Bloem Server pins `github.com/Silo-Server/silo-plugin-sdk v0.24.0`
 for public plugin capabilities. Its native-storage protocol is owned in the
 server repository, under the same `bloem.plugin.v1` wire namespace; the SDK's
 storage proto is byte-identical to that contract. There is no server dependency

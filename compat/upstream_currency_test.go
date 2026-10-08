@@ -24,3 +24,15 @@ func TestUpstreamV023WireAdditions(t *testing.T) {
 		}
 	}
 }
+
+// Silo v0.24.0: per-connection watch-sync settings.
+func TestUpstreamV024WireAdditions(t *testing.T) {
+	for _, name := range []protoreflect.FullName{
+		"silo.plugin.v1.WatchSyncProviderDescriptor.connection_settings",
+		"silo.plugin.v1.WatchSyncAuthenticatedContext.connection_settings",
+	} {
+		if _, err := protoregistry.GlobalFiles.FindDescriptorByName(name); err != nil {
+			t.Errorf("current host contract missing %s: %v", name, err)
+		}
+	}
+}

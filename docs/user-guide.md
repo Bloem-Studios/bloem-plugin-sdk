@@ -672,6 +672,13 @@ state needs series support. `rating_export_requires_watched` is a subset of
 supported media types and requires `export_ratings`. The SDK validator enforces
 these declarations.
 
+`connection_settings` declares preferences a profile can change on its connection at any time,
+such as whether to log rewatches. Each setting has a lowercase slug `key`, a `label`, an optional
+`description`, a `type`, and an optional `default_value`. `BOOLEAN` is the only type so far; the
+host shows it as a switch with the connection's other sync options and stores its value per
+connection. These differ from a capability's `config_schema`, which an API-key connection
+collects once when it is made.
+
 **RPCs**
 
 | RPC | Purpose |
@@ -684,7 +691,11 @@ these declarations.
 | `ListRemoteState` | Page through watched/progress/favorite/watchlist/rating/dropped state; page warnings are diagnostic. |
 
 Every authenticated RPC receives `WatchSyncAuthenticatedContext{capability_id, provider_config
-{values, secret_values}, credentials}`. Treat it as request data: never persist or log it.
+{values, secret_values}, credentials, connection_settings}`. Treat it as request data: never
+persist or log it. `connection_settings` holds the declared settings keyed by setting key, as
+`"true"` or `"false"` for a `BOOLEAN`, with defaults applied for settings the profile has not
+changed. A host that predates the field sends an empty map, so use the default when a key is
+absent.
 `provider_config` keys are `<config key>.<field>` (e.g. `provider.client_id`); scalars are strings,
 structured values JSON, and fields marked `secret` in the manifest arrive in `secret_values`.
 
