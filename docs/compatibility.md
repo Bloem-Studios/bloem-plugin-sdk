@@ -36,7 +36,12 @@ native-storage service. Bloem `v0.25.0` adds ebook metadata, cover entries and a
 change feed to native-storage listings. Bloem `v0.26.0` carries the public
 contract through Silo `v0.24.0` (`f9827a3a7efe15d2eb6612615508a9be335aa38f`):
 watch-sync connection settings and the documented scan-source contract with its
-`hello-scan-source` example. The version numbers identify different modules; a Bloem
+`hello-scan-source` example. Bloem `v0.27.0` adds audiobook/track/chapter metadata,
+explicit source media-kind declarations, and the directory-only browsing hint
+to the private storage contract. It preserves the `v0.26.0` public contract,
+module identity, four storage RPCs, and existing ebook wire fields. Its release
+must precede downstream publication that consumes these additions.
+The version numbers identify different modules; a Bloem
 host or plugin does not need matching module versions merely to share the wire.
 
 The current Bloem Server pins `github.com/Silo-Server/silo-plugin-sdk v0.24.0`

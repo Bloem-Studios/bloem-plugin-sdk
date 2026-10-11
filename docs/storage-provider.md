@@ -345,6 +345,52 @@ fixture caps individual reads at 8 MiB, matching the host's bounded read adapter
 | `InvalidArgument` | Invalid identity, cursor or range. |
 | `Canceled` / `DeadlineExceeded` | Caller cancellation or deadline. |
 
+## Additive audiobook metadata and directory browsing
+
+Bloem SDK v0.27.0 adds the audiobook extension. It keeps protocol revision `1`,
+the four existing RPCs,
+and all earlier field numbers and meanings. `Source.media_kinds` (field 5)
+explicitly declares supported library kinds; declare `audiobook` only for a
+source that can provide audiobook files and metadata. Omitted declarations
+retain only the host's previous fallback and never imply audiobook readiness.
+`Source.directory_only_listing` (field 6) declares that the source implements
+the directory browsing behavior below. Native audiobook readiness requires
+both the audiobook kind declaration and this explicit browsing support.
+
+For `ListRequest.directories_only = true` (field 6), a supporting provider
+returns only directory entries. It omits file hydration, inventory/hash work,
+immutable snapshots, stream downloads, change tokens and removals. Bind every
+cursor to this intent; a cursor from an inventory listing must not resume a
+directory-only listing. Do not use `changes_since` for directory browsing.
+A leaf book is an empty selectable directory: listing it returns an empty
+terminal page without downloading its audio. Directory browsing never updates
+inventory or change-feed checkpoints. An older provider may ignore the hint;
+the host filters its returned entries and never opens them while browsing.
+
+`Entry.audiobook` (field 9) carries provider-held book metadata:
+`book_id`, `title`, `authors`, `narrators`, `description`, `publisher`,
+`published_date`, `language`, `isbn`, `series`, `series_index`, `genres`,
+`cover_entry_id`, `cover_revision` and `cover_thumbhash`.
+`Entry.audio_file` (field 10) carries track metadata: `book_id`, `disc_number`,
+`track_number`, `duration_seconds`, `codec`, `container`, `bitrate`,
+`sample_rate`, `channels` and `chapters`. Use stable provider book IDs to group
+tracks. Chapter times are local to the track; the host converts them to global
+book positions. The existing ebook metadata remains independent.
+
+Audio strings are valid UTF-8 without NULs, at most 4 KiB each, except the
+64 KiB description. Authors, narrators and genres each allow at most 64 values.
+Each track allows at most 1024 chapters; chapter IDs must be nonempty and unique
+within the track. Duration and chapter times must be finite and nonnegative,
+with `start_seconds <= end_seconds <= duration_seconds`. These field limits
+retain the 512-entry and 1 MiB encoded page bounds. The host also bounds a Stat
+response to 1 MiB and validates its audio metadata independently of transport.
+
+Audio metadata never grants a pinned revision or changes read authority.
+`Entry.revision`, `Source.revision_pinned_reads`, and the existing Stat/Read
+revision obligations remain separate requirements. The additive SDK release
+must be reviewed and published before providers can depend on these fields;
+this contract does not establish production backend acceptance.
+
 ## Validation and production scope
 
 [`hello-storage`](../examples/hello-storage/README.md) is an executable,
