@@ -10,7 +10,7 @@ tags:
   - getting-started
 audience:
   - developer
-last_reviewed: 2026-09-05
+last_reviewed: 2026-10-07
 related:
   - admin-guide.md
   - runtime-host.md
@@ -34,6 +34,10 @@ manifest and settings in full. Sections 6–9 are the reference: every capabilit
 and the helper packages. Sections 10–12 cover testing, packaging and versioning.
 
 ---
+
+The separate [native-storage authoring contract](storage-provider.md) covers
+host-approved file providers. Bundled promotions/ambience workers use a server-owned
+JSON protocol and are outside the SDK catalog capability lifecycle.
 
 ## 1. How a plugin works
 
@@ -63,12 +67,12 @@ Type them exactly as shown.
 ```sh
 mkdir hello-plugin && cd hello-plugin
 go mod init example.com/hello-plugin
-go get github.com/Bloem-Studios/bloem-plugin-sdk@v0.13.3
+go get github.com/Bloem-Studios/bloem-plugin-sdk@v0.24.0
 ```
 
-Pin a released tag (`v0.13.3` is the first verified release; use the newest one your server
-supports). The repository is private, so your Git credentials must be able to read it; set
-`GOPRIVATE=github.com/Bloem-Studios` if Go tries the public proxy.
+Pin a released tag supported by your host. The repository is public; no Git
+credentials or `GOPRIVATE` setting is needed. See [release lineage](compatibility.md#release-lineage)
+for the public v1 contract baseline and the separate native-storage extension.
 
 ### 2.2 Write the manifest
 
@@ -154,6 +158,9 @@ prints a go-plugin notice and exits; that is expected (see the [Admin Guide](adm
 
 ### 2.5 Package and install
 
+This walkthrough installs an ordinary capability plugin. Storage-only providers use
+`capabilities: []` and the separate [native approval and binary upload path](storage-provider.md#package-approval-and-native-installation).
+
 ```sh
 ./plugin manifest > manifest.json      # manifest with the real checksum
 zip plugin.zip manifest.json plugin    # both entries at the zip root
@@ -180,14 +187,18 @@ func ServeManifestWithOptions(manifestBytes []byte, version string, servers Capa
 ```
 
 Use it when your `Runtime` needs no custom behaviour. The built-in runtime answers `GetManifest`
-with the loaded manifest, treats `Configure` as a no-op, and wires `BindHostBroker` so
-`runtime.Host()` works. `ServeManifestWithOptions` accepts `WithWatchSyncDeviceAuthorization(server)`
-for watch-sync plugins that use device-code login (see 6.10).
+with the loaded manifest, passes `Configure` to an optional `WithConfigure(fn)`
+callback, and wires `BindHostBroker` so `runtime.Host()` works. Without that callback,
+configuration is a no-op. Accept incomplete settings so fresh installs can start;
+validate remote connectivity in the capability RPCs. Service options include
+`WithWatchSyncDeviceAuthorization`, `WithAuthProviderChecks`, `WithNetworkIdentityAuth`
+and the separate `WithStorageProvider`. See [auth providers](auth-provider.md) and
+[native storage](storage-provider.md).
 
 ### 3.2 `Serve` — the long path
 
-Use it when you need to react to `Configure` (most plugins with settings do) or build the manifest in
-code.
+Use it for a custom `Runtime` implementation or a manifest constructed in code.
+For settings alone, `WithConfigure` keeps the shorter authoring path.
 
 ```go
 type runtimeServer struct {
@@ -271,7 +282,7 @@ it is the easy way to satisfy an interface while you implement methods one at a 
 | `checksum` | string | server | Hex SHA-256 of the executable. Filled in at run time by `LoadWithChecksum`; the placeholder `__CHECKSUM__` is conventional in source. |
 | `silo_api_version` | string | server | `"v1"`. The server rejects any other value. |
 | `supported_platforms` | `[{os, arch}]` | server | Go `GOOS`/`GOARCH` pairs the binary runs on. |
-| `capabilities` | `[CapabilityDescriptor]` | server (≥1) | What the plugin serves (4.2). |
+| `capabilities` | `[CapabilityDescriptor]` | ordinary server install (≥1) | Public services (4.2). Native storage-only providers use `[]` and separate host admission. |
 | `global_config_schema` | `[ConfigSchema]` | no | Server-wide settings an administrator fills in (5). |
 | `user_config_schema` | `[ConfigSchema]` | no | Per-user settings (5). |
 | `http_routes` | `[HttpRouteDescriptor]` | no | Routes served by `http_routes.v1` (6.3). |
@@ -290,8 +301,9 @@ it is the easy way to satisfy an interface while you implement methods one at a 
 | `subscriptions` | `[string]` | Event names an `event_consumer.v1` wants (6.2). |
 | `config_schema` | `[ConfigSchema]` | Settings scoped to this capability. |
 | `metadata` | object | Free-form; readable by peers via `runtimehost.CapabilityMetadata`. |
-| `auth_modes` | `[string]` | `auth_provider.v1` only: `"password"`, `"oauth2"`. Defaults to `["password"]` server-side. |
+| `auth_modes` | `[string]` | `auth_provider.v1` only: `"password"`, `"oauth2"`, `"network"`. Network mode requires a network-access capability and both auth extension services. Defaults to `["password"]` server-side. |
 | `icon_url` | string | `auth_provider.v1` only: plugin-served logo path for the login button. |
+| `request_router` | `RequestRouterDescriptor` | `request_router.v1` only: seasons, progress and wording declarations (6.8). |
 | `watch_sync_provider` | `WatchSyncProviderDescriptor` | `watch_sync_provider.v1` only, and required for it (6.10). Setting it on any other type is a validation error. |
 
 ### 4.3 `presentation`
@@ -419,8 +431,9 @@ err := config.ValidateManifestGlobalValue(m, "connection", map[string]any{"base_
 An undeclared key fails with `… key "x" is not declared in the manifest schema`; a schema that
 does not compile fails with `compile …`; a bad value fails with `validate …`.
 
-To persist a value the administrator did not enter (a token you obtained, a cursor), call
-`runtimehost.Client.SetGlobalConfigEntry(ctx, key, map[string]any)`.
+Ordinary plugins can persist a value the administrator did not enter (a token, a cursor) through
+`runtimehost.Client.SetGlobalConfigEntry(ctx, key, map[string]any)`. Native storage providers have
+no general RuntimeHost broker; use their [authorized configuration lifecycle](storage-provider.md#replace-source-configuration).
 
 ---
 
@@ -558,16 +571,24 @@ end_seconds}` values. Leave a range nil when not found.
 
 | RPC | Request | Response |
 |---|---|---|
-| `Authenticate` | `username`, `password`, `metadata` | `AuthenticateResponse{external_subject, display_name, email, claims}` |
+| `Authenticate` | `username`, `password`, `metadata` | `AuthenticateResponse{external_subject, display_name, email, claims, account, denial}` |
 | `InitAuthorize` | `redirect_uri`, `state`, `linking`, `metadata` | `authorize_url`, `provider_state` Struct |
 | `ExchangeCode` | `code`, `state`, `redirect_uri`, `provider_state` | `AuthenticateResponse` |
-| `RefreshSession` | `external_subject`, `refresh_state` | `AuthenticateResponse` (or `Unimplemented`) |
+| `RefreshSession` | `external_subject`, `refresh_state` | Legacy wire method; current hosts use `AuthProviderChecks.CheckAccount`. |
 
 Password-only providers implement `Authenticate` and set `auth_modes: ["password"]` (the default).
 OAuth/OIDC providers set `auth_modes: ["oauth2"]`, return the redirect URL from `InitAuthorize`
 (stash the PKCE verifier in `provider_state`; the server stores and returns it untouched), and
 complete the login in `ExchangeCode`. `icon_url` on the capability points at a plugin-served asset
 for the "Sign in with …" button. `external_subject` must be stable for the same person across logins.
+
+`AuthProviderChecks` adds staged `TestConnection`, account revalidation through
+`CheckAccount`, and `EndSessionUrl`. Register it with `WithAuthProviderChecks`, or
+implement it on the auth provider server. `NetworkIdentityAuth.AuthenticatePeer`
+adds overlay-device login through `WithNetworkIdentityAuth`. Network mode also
+requires account checks and a declared network-access capability. Typed denial
+and account state are host-owned sign-in inputs; see [auth-provider.md](auth-provider.md)
+for credentials, refresh-state replacement and fail-closed rules.
 
 ### 6.8 `request_router.v1` — `RequestRouterServer`
 
@@ -583,7 +604,20 @@ downloader. Credentials arrive per call in `RouterConnection{id, base_url, api_k
 | `Validate` | `capability_id`, `connection`, `siblings []RouterConnection` (id + config only) | `field_errors map`, `form_error` |
 
 `RequestDescriptor`: `media_type` (`movie`/`series`), `title`, `year`, `external_ids map`,
-`is_anime`, `requester_user_id`, `requester_profile_id`, `requester_email`, `requester_username`.
+`is_anime`, `requester_user_id`, `requester_profile_id`, `requester_email`, `requester_username`, `seasons`.
+An empty season list means the whole series; zero means Specials. Advertise
+`request_router.supports_seasons` only when fulfillment and status honor the
+requested subset without changing other seasons.
+
+`request_router.reports_download_progress` enables `TargetStatus.progress`:
+phase, total/remaining bytes, latest estimated completion and distinct download
+count. Unknown sizes report zero total/remaining bytes; omitting progress clears
+the previous progress on reconciliation.
+
+`request_router.wording` supplies a step (24 characters), queued/downloading
+labels (24) and detail sentences (140). Per-target wording may override it while
+queued/downloading. Use one line without surrounding whitespace, and never
+include release names, paths, indexers or download clients.
 `status` values are host-normalised: `queued`, `downloading`, `completed`, `failed`; pass the raw
 upstream value in `external_status`. `ListConfigOptions` backs `dynamic_options` form fields (5.2).
 The `httpclient` package (section 8) was written for exactly this kind of plugin.
@@ -631,9 +665,19 @@ ordering; the plugin is a stateless protocol adapter. The manifest must carry a
 `WATCH_SYNC_AUTH_METHOD_AUTHORIZATION_CODE`, `API_KEY`, `DEVICE_CODE`), operation flags
 `export_watched`, `export_unwatched`, `import_watched`, `import_progress`, `import_favorites`,
 `export_favorites`, `remove_favorites`, `import_watchlist`, `export_watchlist`, `remove_watchlist`,
-`scrobble_playback` (≥1 must be true), `supported_media_types` (≥1 of `WATCH_SYNC_MEDIA_TYPE_MOVIE`,
-`EPISODE`), `external_id_namespaces` (slugs), `max_batch_size` (1–100), `provides_watchlist_order`
-(requires `import_watchlist`). The SDK validator enforces each of these.
+`scrobble_playback`, `import_ratings`, `export_ratings`, `sync_dropped` (≥1 must be true), `supported_media_types` (≥1 of `WATCH_SYNC_MEDIA_TYPE_MOVIE`,
+`EPISODE`, `SERIES`), `external_id_namespaces` (slugs), `max_batch_size` (1–100), `provides_watchlist_order`
+(requires `import_watchlist`). Ratings need movie or series support; dropped
+state needs series support. `rating_export_requires_watched` is a subset of
+supported media types and requires `export_ratings`. The SDK validator enforces
+these declarations.
+
+`connection_settings` declares preferences a profile can change on its connection at any time,
+such as whether to log rewatches. Each setting has a lowercase slug `key`, a `label`, an optional
+`description`, a `type`, and an optional `default_value`. `BOOLEAN` is the only type so far; the
+host shows it as a switch with the connection's other sync options and stores its value per
+connection. These differ from a capability's `config_schema`, which an API-key connection
+collects once when it is made.
 
 **RPCs**
 
@@ -644,10 +688,14 @@ ordering; the plugin is a stateless protocol adapter. The manifest must carry a
 | `RefreshCredentials` | Turn a refresh token into new credentials. |
 | `GetAccount` | `WatchSyncAccount{external_subject, username, display_name, avatar_url, profile_url}`. |
 | `ApplyEvents` | Push desired state (`WatchSyncEvent` list) upstream; return one `WatchSyncApplyResult{event_id, status, fault}` per event. |
-| `ListRemoteState` | Page through the upstream's watched/progress/favorite/watchlist state. |
+| `ListRemoteState` | Page through watched/progress/favorite/watchlist/rating/dropped state; page warnings are diagnostic. |
 
 Every authenticated RPC receives `WatchSyncAuthenticatedContext{capability_id, provider_config
-{values, secret_values}, credentials}`. Treat it as request data: never persist or log it.
+{values, secret_values}, credentials, connection_settings}`. Treat it as request data: never
+persist or log it. `connection_settings` holds the declared settings keyed by setting key, as
+`"true"` or `"false"` for a `BOOLEAN`, with defaults applied for settings the profile has not
+changed. A host that predates the field sends an empty map, so use the default when a key is
+absent.
 `provider_config` keys are `<config key>.<field>` (e.g. `provider.client_id`); scalars are strings,
 structured values JSON, and fields marked `secret` in the manifest arrive in `secret_values`.
 
@@ -806,6 +854,8 @@ The SDK ships no fake server. Code that needs `runtimehost` should take the clie
 
 ### 10.2 Against a real server
 
+For ordinary capability plugins:
+
 1. Build for the server's platform (Linux/amd64 for most containers) as in 2.4.
 2. Package and upload (2.5, 11). Install succeeds without a restart.
 3. Watch the server log: your `hclog` output appears there, together with any handshake error.
@@ -821,6 +871,10 @@ difference is in your plugin, not the transport.
 ---
 
 ## 11. Packaging and sideloading
+
+This section covers ordinary capability plugins. Native storage requires an approved
+manifest/checksum/platform tuple and a [raw-binary native upload](storage-provider.md#package-approval-and-native-installation),
+with no public capabilities, HTTP routes or assets.
 
 The package is a zip with `manifest.json` and an executable named exactly `plugin` at the root, plus
 every file listed in `assets`. A repeatable script:

@@ -10,5 +10,9 @@ notices are retained. Bloem changes the project/module identity, documentation,
 examples, compatibility verification, and private release automation while
 preserving the v1 plugin wire contract.
 
+The compatible public contract and runtime additions are synchronized through
+Silo Plugin SDK v0.23.0, revision 96074c2c57bb726ce4cedcb2cb70434a5b1b9667.
+The separate bloem.plugin.v1 native-storage contract is maintained by Bloem.
+
 Bloem is not affiliated with or endorsed by Silo Media L.L.C. References to
 Silo identify the upstream project or compatibility interfaces.
