@@ -2604,10 +2604,17 @@ func (x *WatchSyncListRemoteStateRequest) GetStateKinds() []WatchSyncRemoteState
 type WatchSyncRemoteWatchedState struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Number of completed plays known to the provider. Must be at least one when
-	// this submessage is present.
+	// this submessage is present, unless removed is true.
 	PlayCount int32 `protobuf:"varint,1,opt,name=play_count,json=playCount,proto3" json:"play_count,omitempty"`
-	// Provider timestamp for the most recent completed play, when available.
+	// Provider timestamp for the most recent completed play, when available. On
+	// a removal it is when the person removed the item's watches; required then.
 	LastWatchedAt *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=last_watched_at,json=lastWatchedAt,proto3" json:"last_watched_at,omitempty"`
+	// True is an explicit watch-history tombstone: the person removed this
+	// item's watches at the provider. play_count is zero and media is required.
+	// A SERIES item removes the watches of every episode. The host removes only
+	// watches recorded at or before last_watched_at and keeps any made later,
+	// so repeating the tombstone in every traversal is safe.
+	Removed       bool `protobuf:"varint,3,opt,name=removed,proto3" json:"removed,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2654,6 +2661,13 @@ func (x *WatchSyncRemoteWatchedState) GetLastWatchedAt() *timestamppb.Timestamp 
 		return x.LastWatchedAt
 	}
 	return nil
+}
+
+func (x *WatchSyncRemoteWatchedState) GetRemoved() bool {
+	if x != nil {
+		return x.Removed
+	}
+	return false
 }
 
 type WatchSyncRemoteProgressState struct {
@@ -2836,6 +2850,7 @@ type WatchSyncRemoteState struct {
 	ProviderItemKey string                 `protobuf:"bytes,1,opt,name=provider_item_key,json=providerItemKey,proto3" json:"provider_item_key,omitempty"`
 	// Required except on an explicit favorite, watchlist, rating, or dropped
 	// tombstone whose provider_item_key identifies a record returned previously.
+	// A watched tombstone always carries media.
 	Media *WatchSyncMedia `protobuf:"bytes,2,opt,name=media,proto3" json:"media,omitempty"`
 	// At least one typed state must be present. Both may be present when the
 	// provider reports a completed play and a separate resume point.
@@ -3244,11 +3259,12 @@ const file_silo_plugin_v1_watch_sync_provider_proto_rawDesc = "" +
 	"page_token\x18\x03 \x01(\tR\tpageToken\x12\x1b\n" +
 	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\x12I\n" +
 	"\vstate_kinds\x18\x05 \x03(\x0e2(.silo.plugin.v1.WatchSyncRemoteStateKindR\n" +
-	"stateKinds\"\x80\x01\n" +
+	"stateKinds\"\x9a\x01\n" +
 	"\x1bWatchSyncRemoteWatchedState\x12\x1d\n" +
 	"\n" +
 	"play_count\x18\x01 \x01(\x05R\tplayCount\x12B\n" +
-	"\x0flast_watched_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\rlastWatchedAt\"\x82\x01\n" +
+	"\x0flast_watched_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\rlastWatchedAt\x12\x18\n" +
+	"\aremoved\x18\x03 \x01(\bR\aremoved\"\x82\x01\n" +
 	"\x1cWatchSyncRemoteProgressState\x12)\n" +
 	"\x10progress_percent\x18\x01 \x01(\x01R\x0fprogressPercent\x127\n" +
 	"\tpaused_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\bpausedAt\"m\n" +

@@ -52,6 +52,32 @@ func TestWatchSyncTypedRemoteStateRoundTrip(t *testing.T) {
 	}
 }
 
+func TestWatchSyncWatchedRemovalRoundTrip(t *testing.T) {
+	removedAt := time.Unix(1_800_000_000, 0).UTC()
+	input := &WatchSyncRemoteState{
+		ProviderItemKey: "catalog:7",
+		Media:           &WatchSyncMedia{MediaType: WatchSyncMediaType_WATCH_SYNC_MEDIA_TYPE_SERIES},
+		Watched:         &WatchSyncRemoteWatchedState{LastWatchedAt: timestamppb.New(removedAt), Removed: true},
+	}
+	data, err := proto.Marshal(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var output WatchSyncRemoteState
+	if err := proto.Unmarshal(data, &output); err != nil {
+		t.Fatal(err)
+	}
+	watched := output.GetWatched()
+	if !watched.GetRemoved() || watched.GetPlayCount() != 0 || !watched.GetLastWatchedAt().AsTime().Equal(removedAt) {
+		t.Fatalf("watched = %#v", watched)
+	}
+	// A host built before the field reads it from the unknown fields: field 3, varint 1.
+	var older WatchSyncRemoteWatchedState
+	if err := proto.Unmarshal([]byte{0x18, 0x01}, &older); err != nil || !older.GetRemoved() {
+		t.Fatalf("field 3 must be removed=true on the wire: %v %#v", err, &older)
+	}
+}
+
 func TestWatchSyncDeviceAuthorizationRoundTrip(t *testing.T) {
 	expiresAt := time.Unix(1_800_000_000, 0).UTC()
 	input := &WatchSyncDeviceAuthorizationServiceStartResponse{

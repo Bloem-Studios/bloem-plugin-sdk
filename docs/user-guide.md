@@ -711,7 +711,11 @@ Contract rules you must follow:
   else in the response.
 - `ListRemoteState`: the server fixes `cursor` for a phase and follows your page tokens; set
   `complete_snapshot=true` only when a traversal is authoritative. A removal is an item whose list
-  state has `removed=true`; it may omit `media` if `provider_item_key` identifies it. When
+  state has `removed=true`; it may omit `media` if `provider_item_key` identifies it. A watched
+  removal (`watched.removed=true`, from SDK v0.28.0) says the person removed the item's watches:
+  it carries `media` (a series removes every episode), `play_count` 0 and the removal time in
+  `last_watched_at`. The server removes only that connection's profile's watches at or before that
+  time and keeps any made later, so a provider may repeat it in every traversal. When
   `provides_watchlist_order` is true, watchlist traversals must be complete snapshots in remote order.
 
 **Device-code login** lives in a second service, `WatchSyncDeviceAuthorizationServiceServer`

@@ -437,10 +437,17 @@ message WatchSyncListRemoteStateRequest {
 
 message WatchSyncRemoteWatchedState {
   // Number of completed plays known to the provider. Must be at least one when
-  // this submessage is present.
+  // this submessage is present, unless removed is true.
   int32 play_count = 1;
-  // Provider timestamp for the most recent completed play, when available.
+  // Provider timestamp for the most recent completed play, when available. On
+  // a removal it is when the person removed the item's watches; required then.
   google.protobuf.Timestamp last_watched_at = 2;
+  // True is an explicit watch-history tombstone: the person removed this
+  // item's watches at the provider. play_count is zero and media is required.
+  // A SERIES item removes the watches of every episode. The host removes only
+  // watches recorded at or before last_watched_at and keeps any made later,
+  // so repeating the tombstone in every traversal is safe.
+  bool removed = 3;
 }
 
 message WatchSyncRemoteProgressState {
@@ -474,6 +481,7 @@ message WatchSyncRemoteState {
   string provider_item_key = 1;
   // Required except on an explicit favorite, watchlist, rating, or dropped
   // tombstone whose provider_item_key identifies a record returned previously.
+  // A watched tombstone always carries media.
   WatchSyncMedia media = 2;
   // At least one typed state must be present. Both may be present when the
   // provider reports a completed play and a separate resume point.
