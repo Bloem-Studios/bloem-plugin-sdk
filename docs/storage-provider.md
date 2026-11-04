@@ -177,7 +177,7 @@ runtime. Neither the manifest nor an installation request can approve itself;
 there is no author-facing approval endpoint.
 
 The native management upload contains the **raw executable**, not an ordinary
-plugin ZIP. Ordinary catalog install, `/api/v1/admin/plugins/uploads`, ordinary
+plugin ZIP. Ordinary catalog install, `/api/v2/admin/plugins/uploads`, ordinary
 configuration and auto-update are separate paths and do not admit native storage.
 The current host contract is documented in the server's
 [native storage onboarding guide](https://github.com/Bloem-Studios/bloem-server/blob/ac00c6115a55c021c11f96ece01722f7c5745f7f/docs/architecture/bloem-native-storage-onboarding.md)

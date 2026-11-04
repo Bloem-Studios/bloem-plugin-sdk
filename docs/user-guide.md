@@ -164,7 +164,7 @@ This walkthrough installs an ordinary capability plugin. Storage-only providers 
 ```sh
 ./plugin manifest > manifest.json      # manifest with the real checksum
 zip plugin.zip manifest.json plugin    # both entries at the zip root
-curl -X POST "https://bloem.example/api/v1/admin/plugins/uploads" \
+curl -X POST "https://bloem.example/api/v2/admin/plugins/uploads" \
   -H "Authorization: Bearer $BLOEM_ADMIN_TOKEN" \
   -F archive=@plugin.zip
 ```
@@ -784,6 +784,13 @@ err = host.CallPluginJSON(ctx, runtimehost.CallPluginJSONRequest{
 More patterns (presence badges, image URL resolution, addressing events) are in
 [`docs/runtime-host.md`](runtime-host.md).
 
+**The server's HTTP API.** A plugin does not need the server's HTTP API: everything above goes
+through the runtime host. When a plugin's own web page, or a script shipped with it, does call the
+server, it uses Silo's `/api/v2` or Bloem's `/api/bloem/v1`. Silo's `/api/v1` is retired for Bloem
+and Silo is removing it, so never call it or document it. Build links to the plugin's own pages
+from `PluginProxyBaseURL` (today `/api/v2/plugin-content/plugins/<installation id>`) instead of
+writing the path out.
+
 ---
 
 ## 8. Outbound HTTP helper (`httpclient`)
@@ -904,7 +911,7 @@ root; the source `manifest.json` in your repository keeps its `__CHECKSUM__` pla
 Upload:
 
 ```sh
-curl -X POST "$SERVER/api/v1/admin/plugins/uploads" \
+curl -X POST "$SERVER/api/v2/admin/plugins/uploads" \
   -H "Authorization: Bearer $ADMIN_TOKEN" -F archive=@plugin.zip
 ```
 
@@ -956,7 +963,7 @@ checksum, and the server offers it in **Admin → Plugins** when `silo_api_versi
 - **Marker** — an opaque continuation token (`scan_source.v1`) or a skip segment (`marker_provider.v1`), depending on context.
 - **Protojson** — the JSON encoding of protobuf messages used for the manifest; snake_case keys, enums as their full names.
 - **Runtime host** — the server-side gRPC service plugins call back into; `sdkruntime.Host()` returns its client.
-- **Sideload** — installing a plugin by uploading the zip directly to `/api/v1/admin/plugins/uploads`.
+- **Sideload** — installing a plugin by uploading the zip directly to `/api/v2/admin/plugins/uploads`.
 - **Struct** — `google.protobuf.Struct`, a JSON object in protobuf form; `.AsMap()` converts it, `structpb.NewStruct` builds it.
 - **Unimplemented server** — the generated `pluginv1.Unimplemented…Server` type you may embed so unhandled methods return `Unimplemented`.
 
@@ -975,4 +982,4 @@ checksum, and the server offers it in **Admin → Plugins** when `silo_api_versi
 - `proto/silo/plugin/v1/scheduled_task.proto`, `event_consumer.proto`, `http_routes.proto`, `metadata_provider.proto`, `marker_provider.proto`, `media_analyzer.proto`, `auth_provider.proto`, `request_router.proto`, `scan_source.proto`, `watch_sync_provider.proto`, `runtime_host.proto` — RPC and message definitions quoted in section 6 and 7
 - `examples/hello-scheduled-task/`, `examples/hello-runtime-host/`, `cmd/compat-probe/` — working plugins and the `manifest` subcommand test
 - `docs/runtime-host.md`, `docs/compatibility.md`
-- Bloem server `internal/plugins/manifest.go`, `archive_cache.go`, `internal/api/router.go` — server-side manifest requirements, zip layout, upload routes
+- Bloem server `internal/plugins/manifest.go`, `archive_cache.go`, `internal/apiv2/admin_plugin_uploads.go` — server-side manifest requirements, zip layout, upload routes

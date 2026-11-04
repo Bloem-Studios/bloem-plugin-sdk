@@ -429,7 +429,7 @@ For ordinary capability plugins, two paths exist, both administrator-only:
 - **Catalog install.** The server's plugin catalog (`plugin_repositories`) points at packages by
   URL and checksum; the admin picks one in **Admin → Plugins**. The catalog service compares
   `silo_api_version` and `supported_platforms` against the host before offering an entry.
-- **Direct upload ("sideload").** `POST /api/v1/admin/plugins/uploads` with a multipart form field
+- **Direct upload ("sideload").** `POST /api/v2/admin/plugins/uploads` with a multipart form field
   named `archive` containing the zip. Large packages can use the chunked variant
   (`POST /uploads/chunked`, `PUT /uploads/chunked/{upload_id}/chunks/{chunk_index}`,
   `POST /uploads/chunked/{upload_id}/complete`, `DELETE /uploads/chunked/{upload_id}`). The call
@@ -555,4 +555,4 @@ must use the [native configuration route](storage-provider.md#replace-source-con
 - `pkg/pluginsdk/manifest/manifest.go`, `checksum.go` — validation and checksum stamping
 - `pkg/pluginsdk/capability/capability.go` — `KnownTypes`
 - `proto/silo/plugin/v1/common.proto`, `runtime_host.proto`, `scan_source.proto`, `request_router.proto`, `watch_sync_provider.proto` — contract comments on secrets, event stamping and public-safe reads
-- Bloem server: `internal/pluginhost/host.go` (launch), `internal/plugins/manifest.go` (server-side validation), `internal/plugins/archive_cache.go` (zip layout and checksum), `internal/plugins/catalog_service.go` (API version and platform gate), `internal/api/router.go` (`/api/v1/admin/plugins/...` routes)
+- Bloem server: `internal/pluginhost/host.go` (launch), `internal/plugins/manifest.go` (server-side validation), `internal/plugins/archive_cache.go` (zip layout and checksum), `internal/plugins/catalog_service.go` (API version and platform gate), `internal/apiv2/admin_plugin_*.go` (`/api/v2/admin/plugins/...` routes)

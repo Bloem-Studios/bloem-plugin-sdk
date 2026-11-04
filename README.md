@@ -102,7 +102,7 @@ it supports `capabilities: []` and requires a host-approved artifact through sep
    ```sh
    ./plugin manifest > manifest.json
    zip plugin.zip manifest.json plugin
-   curl -X POST "https://bloem.example/api/v1/admin/plugins/uploads" \
+   curl -X POST "https://bloem.example/api/v2/admin/plugins/uploads" \
      -H "Authorization: Bearer $BLOEM_ADMIN_TOKEN" \
      -F archive=@plugin.zip
    ```
