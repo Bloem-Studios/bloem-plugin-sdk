@@ -64,6 +64,15 @@ message RequestRouterDescriptor {
   // wording is how clients describe a request while this plugin fulfils it.
   // Unset, or any field left empty, means the host's own neutral words.
   RequestRouterWording wording = 3;
+  // api_key_optional declares that the plugin works without an API key, for
+  // example because it talks to a local tool or authenticates some other way.
+  // The host then sends it connections whose api_key is empty, and its admin
+  // form saves and tests a server without a key. Hosts skip a connection
+  // without a key when its plugin does not declare this.
+  bool api_key_optional = 4;
+  // base_url_optional declares that the plugin works without a base URL. The
+  // host's admin form then saves and tests a server without one.
+  bool base_url_optional = 5;
 }
 
 // RequestRouterWording names the part of a request that a request router

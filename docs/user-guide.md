@@ -272,6 +272,10 @@ it is the easy way to satisfy an interface while you implement methods one at a 
 
 `manifest.json` is the protojson encoding of `PluginManifest`. Unknown keys are ignored when loaded
 (`DiscardUnknown`), so a stray field will not break anything but will not do anything either.
+The exception is a capability's `request_router` object: the host reads a router's flags from the
+executable's `manifest` output, where an unknown key would silently disappear, so loading fails on a
+`request_router` key (or `wording` key) this SDK version does not define. Move to an SDK version
+that has the field instead of keeping it in `manifest.json`.
 
 ### 4.1 `PluginManifest`
 
@@ -613,6 +617,13 @@ requested subset without changing other seasons.
 phase, total/remaining bytes, latest estimated completion and distinct download
 count. Unknown sizes report zero total/remaining bytes; omitting progress clears
 the previous progress on reconciliation.
+
+`request_router.api_key_optional` (from SDK v0.29.0) says the plugin works without an API key,
+for example because it authenticates some other way. The host then sends it connections with an
+empty `api_key`, and its admin form saves and tests a server without a key; without the flag the
+host skips a connection that has no key. `request_router.base_url_optional` says the plugin works
+without a base URL, so the admin form saves and tests a server without one. Both use the same
+field numbers as Silo's SDK v0.31.0.
 
 `request_router.wording` supplies a step (24 characters), queued/downloading
 labels (24) and detail sentences (140). Per-target wording may override it while

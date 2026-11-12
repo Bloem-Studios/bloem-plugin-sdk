@@ -3,6 +3,7 @@ package runtime
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"reflect"
 	"sync"
@@ -392,6 +393,24 @@ func SetHostBrokerID(id uint32) { pluginHost.setBrokerID(id) }
 // *runtimehost.Client; later calls reuse the same client.
 func Host() *runtimehost.Client { return pluginHost.host() }
 
+// writeManifest prints the manifest the Runtime server returns as indented
+// protojson, which is what a plugin executable's `manifest` subcommand outputs
+// and what release tooling ships as manifest.json.
+func writeManifest(ctx context.Context, w io.Writer, rt pluginv1.RuntimeServer) error {
+	resp, err := rt.GetManifest(ctx, &pluginv1.GetManifestRequest{})
+	if err != nil {
+		return fmt.Errorf("failed to get manifest: %w", err)
+	}
+	data, err := protojson.MarshalOptions{Indent: "  "}.Marshal(resp.GetManifest())
+	if err != nil {
+		return fmt.Errorf("failed to encode manifest: %w", err)
+	}
+	if _, err := fmt.Fprintln(w, string(data)); err != nil {
+		return fmt.Errorf("failed to write manifest: %w", err)
+	}
+	return nil
+}
+
 func Serve(cfg ServeConfig) {
 	// Handle "manifest" subcommand: print the plugin manifest as JSON and exit.
 	if len(os.Args) > 1 && os.Args[1] == "manifest" {
@@ -399,18 +418,10 @@ func Serve(cfg ServeConfig) {
 			fmt.Fprintln(os.Stderr, "runtime server is required to retrieve manifest")
 			os.Exit(1)
 		}
-		resp, err := cfg.Servers.Runtime.GetManifest(context.Background(), &pluginv1.GetManifestRequest{})
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to get manifest: %v\n", err)
+		if err := writeManifest(context.Background(), os.Stdout, cfg.Servers.Runtime); err != nil {
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
-		marshaler := protojson.MarshalOptions{Indent: "  "}
-		data, err := marshaler.Marshal(resp.GetManifest())
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to encode manifest: %v\n", err)
-			os.Exit(1)
-		}
-		fmt.Println(string(data))
 		os.Exit(0)
 	}
 

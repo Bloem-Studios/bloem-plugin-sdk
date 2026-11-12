@@ -104,7 +104,37 @@ func decode(data []byte) (*pluginv1.PluginManifest, error) {
 	if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(data, &manifest); err != nil {
 		return nil, fmt.Errorf("decode plugin manifest: %w", err)
 	}
+	if err := checkRequestRouterFields(data); err != nil {
+		return nil, err
+	}
 	return &manifest, nil
+}
+
+// checkRequestRouterFields decodes every capability's request_router object
+// strictly. The host reads a router's flags from the plugin's own manifest
+// output, which is printed from the decoded proto, so a key this SDK does not
+// know would vanish there and the host would treat the flag as false. Failing
+// the load makes a plugin that declares a flag from a newer SDK, or misspells
+// one, fail its tests and startup instead of shipping without it.
+func checkRequestRouterFields(data []byte) error {
+	var raw struct {
+		Capabilities []map[string]json.RawMessage `json:"capabilities"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode plugin manifest: %w", err)
+	}
+	for i, capability := range raw.Capabilities {
+		for _, key := range []string{"request_router", "requestRouter"} {
+			router, ok := capability[key]
+			if !ok || string(router) == "null" {
+				continue
+			}
+			if err := protojson.Unmarshal(router, &pluginv1.RequestRouterDescriptor{}); err != nil {
+				return fmt.Errorf("decode plugin manifest: capability %d request_router: %w", i, err)
+			}
+		}
+	}
+	return nil
 }
 
 // Validate validates the proto plugin manifest.

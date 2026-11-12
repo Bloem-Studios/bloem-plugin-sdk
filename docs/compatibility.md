@@ -41,6 +41,9 @@ explicit source media-kind declarations, and the directory-only browsing hint
 to the private storage contract. It preserves the `v0.26.0` public contract,
 module identity, four storage RPCs, and existing ebook wire fields. Its release
 must precede downstream publication that consumes these additions.
+Bloem `v0.29.0` adds `RequestRouterDescriptor.api_key_optional` (field 4) and
+`base_url_optional` (field 5), with the names and numbers of Silo `v0.31.0`, and
+makes manifest loading fail on an unknown `request_router` key.
 The version numbers identify different modules; a Bloem
 host or plugin does not need matching module versions merely to share the wire.
 

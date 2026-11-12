@@ -181,3 +181,69 @@ func TestValidateRequestStatusWording(t *testing.T) {
 		}
 	}
 }
+
+func TestLoadRequestRouterDeclaresOptionalKeyAndURL(t *testing.T) {
+	raw := []byte(`{
+	  "plugin_id":"example.requests", "version":"1.0.0", "silo_api_version":"v1",
+	  "capabilities":[{
+	    "type":"request_router.v1", "id":"books", "display_name":"Books",
+	    "request_router":{"api_key_optional":true, "base_url_optional":true}
+	  }]
+	}`)
+	manifest, err := publicmanifest.Load(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	descriptor := manifest.GetCapabilities()[0].GetRequestRouter()
+	if !descriptor.GetApiKeyOptional() || !descriptor.GetBaseUrlOptional() {
+		t.Fatalf("request router = %v, want api_key_optional and base_url_optional true", descriptor)
+	}
+}
+
+// A request_router key this SDK does not know would be dropped from the
+// plugin's manifest output, and the host would then treat the flag as false.
+// Loading fails instead, whether the key is a typo or needs a newer SDK.
+func TestLoadRejectsUnknownRequestRouterFields(t *testing.T) {
+	for name, router := range map[string]string{
+		"unknown flag":          `{"api_key_optional":true, "future_flag":true}`,
+		"misspelled flag":       `{"apiKeyOptinal":true}`,
+		"unknown wording field": `{"wording":{"step":"Processing", "colour":"green"}}`,
+	} {
+		raw := []byte(`{
+		  "plugin_id":"example.requests", "version":"1.0.0", "silo_api_version":"v1",
+		  "capabilities":[{
+		    "type":"request_router.v1", "id":"books", "display_name":"Books",
+		    "request_router":` + router + `
+		  }]
+		}`)
+		if _, err := publicmanifest.Load(raw); err == nil {
+			t.Errorf("%s: Load succeeded, want an unknown-field error", name)
+		} else if !strings.Contains(err.Error(), "request_router") {
+			t.Errorf("%s: error %q does not name request_router", name, err)
+		}
+		if _, err := publicmanifest.LoadWithChecksum(raw, ""); err == nil {
+			t.Errorf("%s: LoadWithChecksum succeeded, want an unknown-field error", name)
+		}
+	}
+}
+
+// Both protojson spellings of the descriptor's own fields still load, and
+// unknown keys elsewhere in the manifest are still ignored.
+func TestLoadAcceptsKnownRequestRouterSpellings(t *testing.T) {
+	raw := []byte(`{
+	  "plugin_id":"example.requests", "version":"1.0.0", "silo_api_version":"v1",
+	  "x_build_note":"ignored",
+	  "capabilities":[{
+	    "type":"request_router.v1", "id":"books", "display_name":"Books", "x_other":1,
+	    "requestRouter":{"apiKeyOptional":true, "base_url_optional":true, "wording":{"step":"Processing"}}
+	  }]
+	}`)
+	manifest, err := publicmanifest.Load(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	descriptor := manifest.GetCapabilities()[0].GetRequestRouter()
+	if !descriptor.GetApiKeyOptional() || !descriptor.GetBaseUrlOptional() || descriptor.GetWording().GetStep() != "Processing" {
+		t.Fatalf("request router = %v, want both flags and the wording step", descriptor)
+	}
+}
