@@ -1,8 +1,7 @@
 # Auth providers (`auth_provider.v1`)
 
-Version references in this guide identify upstream Silo contract additions.
-Bloem SDK v0.24.0 includes them through upstream v0.23.0; see
-[release lineage](compatibility.md#release-lineage).
+This guide follows Silo's plugin contract; see
+[Silo SDK compatibility](compatibility.md#silo-sdk-compatibility).
 
 An auth provider lets people sign in to Silo with an account that lives
 somewhere else: an OIDC identity provider, an LDAP directory, or a billing
@@ -111,7 +110,7 @@ keys identities by plugin installation and `external_subject`, so it must not
 change for the same person. Use the provider's immutable ID, not a username or
 email.
 
-Fields added in v0.22.0, all optional:
+All of these fields are optional:
 
 | Field | Meaning |
 |---|---|
@@ -140,8 +139,8 @@ When the provider refuses a sign-in for a known reason, return a response with
 | `PASSWORD_EXPIRED` | The password must be changed at the provider first. |
 | `PROVIDER_UNAVAILABLE` | The provider could not be reached, or the plugin's settings are incomplete. |
 
-Leaving `external_subject` empty keeps a denial fail-closed on hosts built
-before v0.22.0: they ignore `denial` but refuse any response without a
+Leaving `external_subject` empty keeps a denial fail-closed on older hosts:
+they ignore `denial` but refuse any response without a
 subject. `denial_detail` is for the operator log; the host never shows it to
 the person signing in. Never put secrets in it.
 
@@ -196,8 +195,8 @@ The flow:
    and a server with a public URL is still reachable after they leave the
    overlay.
 
-The host never sends a network provider a password. Hosts built before
-v0.23.0 don't know the mode and treat the capability as a password provider,
+The host never sends a network provider a password. Older hosts
+don't know the mode and treat the capability as a password provider,
 so answer `Authenticate` with `INVALID_CREDENTIALS` and leave `InitAuthorize`
 and `ExchangeCode` unimplemented.
 
@@ -219,7 +218,7 @@ check happens at run time: a value whose methods have pointer receivers, or a
 wrapper around the server, fails it silently, so prefer the explicit option.
 
 The host reaches the service through `(*runtime.Client).AuthProviderChecks()`.
-Plugins built before v0.22.0 answer `Unimplemented`. Hosts then show no
+A plugin that does not implement it answers `Unimplemented`. Hosts then show no
 connection test, handle `CheckAccount` like `UNSUPPORTED` (the account's
 sessions get an absolute age limit and don't slide, and its API keys and
 Audiobookshelf sessions are revoked once the person has gone too long without

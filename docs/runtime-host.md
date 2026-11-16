@@ -141,8 +141,7 @@ vocabulary, smallest to largest, is exported as constants from
 | `imagevariant.Full` | `full` | full-screen and near-source rendering |
 | `imagevariant.Original` | `original` | unresized source asset |
 
-`large` was added after the initial vocabulary; the set is open and may grow
-again. A plugin that resolves variants itself (for example a metadata provider
+The set is open and may grow. A plugin that resolves variants itself (for example a metadata provider
 implementing `ResolveImageURL` / `ResolveImageURLs`) must treat an unknown
 variant as a request for its nearest supported size — or its default — and must
 never return an error. Implement the mapping as a `switch` with a `default` arm

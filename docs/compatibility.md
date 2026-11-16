@@ -4,7 +4,7 @@
 
 `bloem-plugin-sdk` is the public Bloem build-time contract for Go plugin
 authors. Its plugins target Bloem and compatible official Silo servers through
-the preserved v1 wire contract.
+the `silo.plugin.v1` wire contract.
 
 This repository is public and released as a semver-governed Go module. Bloem
 plugins and first-party consumers should depend on tagged releases, not on
@@ -20,50 +20,43 @@ The compatibility boundary includes:
 - generic capability metadata conversion helpers in `pkg/pluginsdk/convert`
 - canonical image-variant strings in `pkg/pluginsdk/imagevariant`
 
-`WatchSyncAuthenticatedContext.connection_settings` (Silo SDK v0.24.0, Bloem
-SDK v0.26.0) is a map, so it has no presence: a host that predates it sends an
-empty map. A plugin must treat a missing key as the setting's
-default rather than as an error. A host skips a declared setting whose type it
-does not know, including one an older SDK decoded as `UNSPECIFIED`, and sends no
-value for it.
+`WatchSyncAuthenticatedContext.connection_settings` is a map, so it has no presence:
+a host that does not send it sends an empty map. A plugin must treat a missing
+key as the setting's default rather than as an error. A host skips a declared
+setting whose type it does not know, including one an older SDK decoded as
+`UNSPECIFIED`, and sends no value for it.
 
-## Release lineage
+## Silo SDK compatibility
 
-Bloem `v0.16.1` contains the compatible upstream Silo `v0.16.1` public contract.
-Bloem `v0.24.0` carries the public contract and helper/runtime changes through
-Silo `v0.23.0` (`96074c2c57bb726ce4cedcb2cb70434a5b1b9667`), plus Bloem's separate
-native-storage service. Bloem `v0.25.0` adds ebook metadata, cover entries and a
-change feed to native-storage listings. Bloem `v0.26.0` carries the public
-contract through Silo `v0.24.0` (`f9827a3a7efe15d2eb6612615508a9be335aa38f`):
-watch-sync connection settings and the documented scan-source contract with its
-`hello-scan-source` example. Bloem `v0.27.0` adds audiobook/track/chapter metadata,
-explicit source media-kind declarations, and the directory-only browsing hint
-to the private storage contract. It preserves the `v0.26.0` public contract,
-module identity, four storage RPCs, and existing ebook wire fields. Its release
-must precede downstream publication that consumes these additions.
-Bloem `v0.29.0` adds `RequestRouterDescriptor.api_key_optional` (field 4) and
-`base_url_optional` (field 5), with the names and numbers of Silo `v0.31.0`, and
-makes manifest loading fail on an unknown `request_router` key.
-The version numbers identify different modules; a Bloem
-host or plugin does not need matching module versions merely to share the wire.
+This SDK builds on [Silo's plugin SDK](https://github.com/Silo-Server/silo-plugin-sdk)
+and carries its public plugin contract. Bloem adds a separate native-storage
+service and a few additive fields:
 
-The current Bloem Server pins `github.com/Silo-Server/silo-plugin-sdk v0.24.0`
-for public plugin capabilities. Its native-storage protocol is owned in the
-server repository, under the same `bloem.plugin.v1` wire namespace; the SDK's
-storage proto is byte-identical to that contract. There is no server dependency
-on a sibling SDK checkout. Do not link both SDK modules into one Go process:
-they register the same public protobuf descriptor names. Plugin and host
-executables may use different module paths and communicate over gRPC.
+- `RequestRouterDescriptor.api_key_optional` (field 4) and `base_url_optional`
+  (field 5), with the names and numbers Silo's SDK uses. Manifest loading fails
+  on an unknown `request_router` key.
+- The native-storage service (`bloem.plugin.v1`) has four RPCs. Its listings carry
+  ebook metadata, cover entries and a change feed, audiobook, track and chapter
+  metadata, explicit source media-kind declarations and a directory-only browsing
+  hint.
 
-The `v0.24.0` additions include auth account checks/network identity, a
-`WithConfigure` callback, request seasons/progress/wording, watch ratings/series,
-dropped shows and page warnings. Bloem module paths, attribution, examples,
-wire identity and released struct layouts remain preserved. New service options
-compose with `WithStorageProvider` on the existing connection.
+The module version numbers of Bloem's and Silo's SDKs identify different modules;
+a Bloem host or plugin does not need matching module versions merely to share the
+wire.
 
-The private storage service is separate from the public capability vocabulary.
-"Private" describes its host admission and independent extension boundary; the
-SDK repository and its Go module tags are public. See
+Bloem Server depends on Silo's SDK module for public plugin capabilities. Its
+native-storage protocol is owned in the server repository, under the same
+`bloem.plugin.v1` wire namespace; the SDK's storage proto is byte-identical to that
+contract. There is no server dependency on a sibling SDK checkout. Do not link both
+SDK modules into one Go process: they register the same public protobuf descriptor
+names. Plugin and host executables may use different module paths and communicate
+over gRPC.
+
+New service options compose with `WithStorageProvider` on the existing connection.
+
+The storage service is separate from the public capability vocabulary. "Private"
+describes its host admission and independent extension boundary; the SDK
+repository and its Go module tags are public. See
 [storage-provider.md](storage-provider.md). Bloem's bundled promotions and
 ambience processes use a server-owned JSON bridge and require no SDK capability.
 
@@ -85,7 +78,7 @@ ambience processes use a server-owned JSON bridge and require no SDK capability.
 ## Open Vocabularies
 
 Some contract fields carry an open string vocabulary rather than an enum, so
-Silo can add values without a breaking protobuf change. Plugins must tolerate
+Silo and Bloem can add values without a breaking protobuf change. Plugins must tolerate
 values they do not recognize.
 
 Image variants (`ResolveImageURLRequest.variant`,
@@ -93,16 +86,15 @@ Image variants (`ResolveImageURLRequest.variant`,
 the current example. The canonical values are exported from
 `pkg/pluginsdk/imagevariant`: `card`, `featured`, `large`, `full`, `original`,
 listed smallest to largest. `large` (~780px posters and stills, ~1280px logos
-and backdrops) was added between `featured` and `full` once Silo gained
-client-selectable image sizes; adding it is an additive change and does not
-require a plugin update.
+and backdrops) sits between `featured` and `full`. Adding a value is an additive
+change and does not require a plugin update.
 
 A plugin receiving an unknown variant MUST degrade gracefully to its nearest
 supported size — or its default size — and MUST NOT return an error. Returning
 an error turns a slightly-wrong image size into a missing image. Use a `switch`
 with a `default` arm rather than an exhaustive match, and do not assume the
 constants shipped in any given SDK tag are the complete set. The same rule
-applies to any future open vocabulary added to `v1`.
+applies to any future open vocabulary added to `silo.plugin.v1`.
 
 ## Presence-Sensitive Optional Fields
 

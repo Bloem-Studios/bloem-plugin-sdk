@@ -1,8 +1,7 @@
 # Network access providers (`network_access_provider.v1`)
 
-Version references in this guide identify upstream Silo contract additions.
-Bloem SDK v0.24.0 includes them through upstream v0.23.0; see
-[release lineage](compatibility.md#release-lineage).
+This guide follows Silo's plugin contract; see
+[Silo SDK compatibility](compatibility.md#silo-sdk-compatibility).
 
 A network access provider gives a Silo deployment an overlay-network identity
 (Tailscale via tsnet first; NetBird later) so clients reach Silo without port
@@ -11,7 +10,7 @@ reverse proxy in front of the host's local listeners. The host owns
 supervision, per-instance state storage, status aggregation, access-path
 routing, and the admin API.
 
-Added in SDK v0.16.0. Server support arrives in stages; check the host's
+Server support arrives in stages; check the host's
 `/api/v2/network-access/capabilities` before assuming a feature exists.
 
 ## Manifest
