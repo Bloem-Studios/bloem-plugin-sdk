@@ -1,6 +1,6 @@
 # Native storage providers
 
-Bloem SDK v0.24.0 adds the independent `bloem.plugin.v1.StorageProvider`
+The SDK includes the independent `bloem.plugin.v1.StorageProvider`
 service. It preserves the existing `silo.plugin.v1` contract, handshake and
 `CapabilityServers` layout. The SDK repository is public; "private storage"
 means a separate host-approved extension, not a private module distribution.
@@ -11,7 +11,7 @@ Start a separate Go module and pin the public release:
 
 ```sh
 go mod init example.com/my-storage-provider
-go get github.com/Bloem-Studios/bloem-plugin-sdk@v0.24.0
+go get github.com/Bloem-Studios/bloem-plugin-sdk@latest
 ```
 
 Implement `storagev1.StorageProviderServer` from
@@ -180,8 +180,8 @@ The native management upload contains the **raw executable**, not an ordinary
 plugin ZIP. Ordinary catalog install, `/api/v2/admin/plugins/uploads`, ordinary
 configuration and auto-update are separate paths and do not admit native storage.
 The current host contract is documented in the server's
-[native storage onboarding guide](https://github.com/Bloem-Studios/bloem-server/blob/ac00c6115a55c021c11f96ece01722f7c5745f7f/docs/architecture/bloem-native-storage-onboarding.md)
-and [API reference](https://github.com/Bloem-Studios/bloem-server/blob/ac00c6115a55c021c11f96ece01722f7c5745f7f/docs/bloem-api-reference.md#native-storage-administration).
+[native storage architecture guide](https://github.com/Bloem-Studios/bloem-server/blob/main/docs/architecture/bloem-native-storage.md)
+and [storage API reference](https://github.com/Bloem-Studios/bloem-server/blob/main/docs/bloem/api/storage.md).
 
 ### Configure the host approval file
 
@@ -217,15 +217,15 @@ map is immutable for that process; updates need a reviewed file and restart.
 An unset variable produces an empty map. An explicitly invalid file or invalid
 artifact record fails startup. In containers, these path and ownership checks
 apply inside the container. See the server's
-[startup loader](https://github.com/Bloem-Studios/bloem-server/blob/ac00c6115a55c021c11f96ece01722f7c5745f7f/internal/nativestorage/host.go).
+[startup loader](https://github.com/Bloem-Studios/bloem-server/blob/main/internal/nativestorage/host.go).
 
 ### Inspect and install an approved artifact
 
-Use the signed context returned by `POST /api/bloem/v1/admin/session` for one of
+Use the signed context returned by `POST /api/bloem/v2/admin/session` for one of
 these prefixes:
 
-- `/api/bloem/v1/admin/platform/native-storage`
-- `/api/bloem/v1/admin/organization/native-storage`
+- `/api/bloem/v2/admin/platform/native-storage`
+- `/api/bloem/v2/admin/organization/native-storage`
 
 The session must carry current scope and resource authority; an ordinary viewer
 token does not substitute for it. Read `GET /capabilities` to inspect actual
@@ -262,7 +262,7 @@ context in `BLOEM_NATIVE_ADMIN_TOKEN`, an organization-scoped upload is:
 
 ```sh
 curl --fail-with-body \
-  "https://bloem.example/api/bloem/v1/admin/organization/native-storage/installations" \
+  "https://bloem.example/api/bloem/v2/admin/organization/native-storage/installations" \
   -H "Authorization: Bearer $BLOEM_NATIVE_ADMIN_TOKEN" \
   -F 'request=@install-request.json;type=application/json' \
   -F 'binary=@dist/plugin;type=application/octet-stream'
@@ -347,7 +347,7 @@ fixture caps individual reads at 8 MiB, matching the host's bounded read adapter
 
 ## Additive audiobook metadata and directory browsing
 
-Bloem SDK v0.27.0 adds the audiobook extension. It keeps protocol revision `1`,
+The audiobook extension keeps protocol revision `1`,
 the four existing RPCs,
 and all earlier field numbers and meanings. `Source.media_kinds` (field 5)
 explicitly declares supported library kinds; declare `audiobook` only for a
