@@ -10,7 +10,6 @@ tags:
   - getting-started
 audience:
   - developer
-last_reviewed: 2026-10-07
 related:
   - admin-guide.md
   - runtime-host.md
@@ -55,7 +54,7 @@ Three facts shape everything below.
 
 One naming note. The Go import path of the SDK is `github.com/Bloem-Studios/bloem-plugin-sdk`, the
 protobuf package is `silo.plugin.v1`, and the manifest's API-version field is `silo_api_version`.
-These spellings predate the Bloem name and are frozen because servers and plugins already speak them.
+These spellings come from Silo, which this SDK builds on, and are frozen because servers and plugins already speak them.
 Type them exactly as shown.
 
 ---
@@ -67,12 +66,12 @@ Type them exactly as shown.
 ```sh
 mkdir hello-plugin && cd hello-plugin
 go mod init example.com/hello-plugin
-go get github.com/Bloem-Studios/bloem-plugin-sdk@v0.24.0
+go get github.com/Bloem-Studios/bloem-plugin-sdk@latest
 ```
 
 Pin a released tag supported by your host. The repository is public; no Git
-credentials or `GOPRIVATE` setting is needed. See [release lineage](compatibility.md#release-lineage)
-for the public v1 contract baseline and the separate native-storage extension.
+credentials or `GOPRIVATE` setting is needed. See [Silo SDK compatibility](compatibility.md#silo-sdk-compatibility)
+for the public contract baseline and the separate native-storage extension.
 
 ### 2.2 Write the manifest
 
@@ -618,12 +617,12 @@ phase, total/remaining bytes, latest estimated completion and distinct download
 count. Unknown sizes report zero total/remaining bytes; omitting progress clears
 the previous progress on reconciliation.
 
-`request_router.api_key_optional` (from SDK v0.29.0) says the plugin works without an API key,
+`request_router.api_key_optional` (SDK v0.29.0 or later) says the plugin works without an API key,
 for example because it authenticates some other way. The host then sends it connections with an
 empty `api_key`, and its admin form saves and tests a server without a key; without the flag the
 host skips a connection that has no key. `request_router.base_url_optional` says the plugin works
 without a base URL, so the admin form saves and tests a server without one. Both use the same
-field numbers as Silo's SDK v0.31.0.
+names and field numbers as Silo's SDK.
 
 `request_router.wording` supplies a step (24 characters), queued/downloading
 labels (24) and detail sentences (140). Per-target wording may override it while
@@ -723,7 +722,7 @@ Contract rules you must follow:
 - `ListRemoteState`: the server fixes `cursor` for a phase and follows your page tokens; set
   `complete_snapshot=true` only when a traversal is authoritative. A removal is an item whose list
   state has `removed=true`; it may omit `media` if `provider_item_key` identifies it. A watched
-  removal (`watched.removed=true`, from SDK v0.28.0) says the person removed the item's watches:
+  removal (`watched.removed=true`, SDK v0.28.0 or later) says the person removed the item's watches:
   it carries `media` (a series removes every episode), `play_count` 0 and the removal time in
   `last_watched_at`. The server removes only that connection's profile's watches at or before that
   time and keeps any made later, so a provider may repeat it in every traversal. When
@@ -801,9 +800,8 @@ More patterns (presence badges, image URL resolution, addressing events) are in
 
 **The server's HTTP API.** A plugin does not need the server's HTTP API: everything above goes
 through the runtime host. When a plugin's own web page, or a script shipped with it, does call the
-server, it uses Silo's `/api/v2` or Bloem's `/api/bloem/v1`. Silo's `/api/v1` is retired for Bloem
-and Silo is removing it, so never call it or document it. Build links to the plugin's own pages
-from `PluginProxyBaseURL` (today `/api/v2/plugin-content/plugins/<installation id>`) instead of
+server, it uses Silo's `/api/v2` or Bloem's `/api/bloem/v2`. Build links to the plugin's own pages
+from `PluginProxyBaseURL` (`/api/v2/plugin-content/plugins/<installation id>`) instead of
 writing the path out.
 
 ---

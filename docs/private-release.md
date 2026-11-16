@@ -5,13 +5,10 @@ Bloem Plugin SDK releases are GitHub releases in the public
 without credentials or `GOPRIVATE`. The release workflow does not change
 repository visibility or push to another registry. An operator pushes a reviewed
 `v*` tag; the workflow tests that exact commit and creates its GitHub release.
-This document and the guard scripts retain their historical filenames.
 
 ## Create a release
 
-`v0.13.2` is an immutable failed historical candidate and must never be reused
-or moved. `v0.13.3` is the first verified Bloem Plugin SDK release. For each
-future release, set `RELEASE_TAG` to a new, unused semantic version, run the
+For each release, set `RELEASE_TAG` to a new, unused semantic version, run the
 complete local gate from a clean checkout, create an annotated tag, and push
 only that reviewed tag:
 

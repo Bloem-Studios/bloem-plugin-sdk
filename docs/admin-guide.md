@@ -11,7 +11,6 @@ tags:
 audience:
   - maintainer
   - operator
-last_reviewed: 2026-10-07
 related:
   - user-guide.md
   - compatibility.md
@@ -179,7 +178,7 @@ failing guard is a signal to revert, not to "fix the test".
 | `TestBloemModuleAndAttribution` | `internal/projectidentity/identity_test.go` | `go.mod` does not start with the expected module line, or `NOTICE` loses the upstream name, version, revision, licence or affiliation sentence. |
 | `TestExampleManifestIdentity` | `examples/examples_test.go` | Either example manifest changes its `plugin_id` or its `silo_api_version`. |
 | `TestManifestSubcommand` | `cmd/compat-probe/main_test.go` | The probe no longer prints a valid manifest with `plugin_id` `bloem.compat.probe`, `silo_api_version` `v1` and exactly one `metadata_provider.v1` capability. |
-| `capability_servers_compat_test.go` | `pkg/pluginsdk/runtime/` | The unkeyed field order of `runtime.CapabilityServers` changes. Plugins written against v0.12 construct it positionally, so new servers must be added through options (see 4.4), not new struct fields. |
+| `capability_servers_compat_test.go` | `pkg/pluginsdk/runtime/` | The unkeyed field order of `runtime.CapabilityServers` changes. Existing plugins construct it positionally, so new servers must be added through options (see 4.4), not new struct fields. |
 
 ### 2.5 The private-release guard
 
@@ -247,9 +246,7 @@ Go consumers can fetch the module without credentials or `GOPRIVATE`.
 The canonical procedure is in [`docs/private-release.md`](private-release.md); this is the same
 sequence with each step explained.
 
-1. **Choose the version.** Semver, `vMAJOR.MINOR.PATCH`. Rules are in 3.5. Two constraints from the
-   repository's history: `v0.13.2` is a failed historical candidate that must never be reused or
-   moved, and `v0.13.3` is the first verified release of this SDK.
+1. **Choose the version.** Semver, `vMAJOR.MINOR.PATCH`, never one that was used before. Rules are in 3.5.
 2. **Start from a clean checkout of `main`.** `git status --porcelain` must print nothing.
 3. **Prove the tag is unused** three ways: not in `git tag --list`, not on the remote
    (`git ls-remote --tags origin refs/tags/<tag> refs/tags/<tag>^{}` prints nothing), and no GitHub
@@ -320,9 +317,9 @@ it with the API version it implements and refuses to install a plugin whose valu
 manifest in this repository declares `"v1"`, and that is the only value a current server accepts.
 The SDK's own validator does not require the field, but the server does, so treat it as mandatory.
 
-### 4.2 What "the v1 wire contract" means
+### 4.2 What the wire contract covers
 
-A plugin built with this SDK and a server that speaks v1 agree on:
+A plugin built with this SDK and a server that implements the same API version agree on:
 
 - the protobuf package `silo.plugin.v1` and every message and field number in it;
 - the gRPC service names (`Runtime`, `MetadataProvider`, `ImageResolver`, `MarkerProvider`,
@@ -336,8 +333,8 @@ A plugin built with this SDK and a server that speaks v1 agree on:
 Additive fields preserve wire decoding, but a host may not implement a newer
 service or honor its fields. Plugins must advertise only implemented behavior
 and verify host support before relying on it. Native storage requires separate
-host admission. [Compatibility](compatibility.md#release-lineage) records the
-upstream baseline and the server's actual dependency arrangement.
+host admission. [Compatibility](compatibility.md#silo-sdk-compatibility) records the
+upstream baseline and the server's dependency arrangement.
 
 ### 4.3 Capability families known to this SDK
 
@@ -365,9 +362,9 @@ There is no subtitle capability in this SDK version.
 
 ### 4.4 Adding a service without breaking existing plugins
 
-`runtime.CapabilityServers` is an unkeyed struct that plugins written for v0.12 fill positionally.
-The watch-sync device-authorization service was added after that release, so it is registered through
-an option rather than a new field:
+`runtime.CapabilityServers` is an unkeyed struct that existing plugins fill positionally.
+The watch-sync device-authorization service is therefore registered through an option
+rather than a new field:
 
 ```go
 runtime.ServeManifestWithOptions(manifestJSON, version, servers,
@@ -537,7 +534,7 @@ must use the [native configuration route](storage-provider.md#replace-source-con
 - **Guard test** — a test whose only job is to fail when a contract or identity value changes.
 - **Handshake** — the go-plugin start-up exchange (protocol version, magic cookie) that proves a binary was launched by a real host.
 - **Manifest** — `manifest.json`, the plugin's self-description: id, version, checksum, API version, platforms, capabilities, settings schema, routes, assets.
-- **SDK release** — an immutable Git tag plus a GitHub Release in the public repository; Go can resolve its module without credentials. The release-guard filenames retain their historical names.
+- **SDK release** — an immutable Git tag plus a GitHub Release in the public repository; Go can resolve its module without credentials.
 - **RuntimeHost** — the gRPC service the server exposes to plugins for events, catalog reads, peer discovery and scoped streams.
 - **Semver** — `MAJOR.MINOR.PATCH` versioning; additive = minor, compatible fix = patch, breaking = major.
 - **Sideload** — installing a plugin by uploading its zip directly rather than from a catalog.

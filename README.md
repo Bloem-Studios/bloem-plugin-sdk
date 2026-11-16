@@ -5,16 +5,16 @@ a library that plugin authors depend on via `go.mod`. It gives a plugin author t
 protobuf and gRPC code for supported plugin capabilities, helpers to load and
 validate a `manifest.json`, a `Serve` function that turns a Go program into a process the server
 can launch and talk to, and a typed client for calling back into the server. Plugins built with
-this SDK target Bloem servers and compatible upstream Silo servers through the same v1 wire
+this SDK target Bloem servers and compatible upstream Silo servers through the same wire
 contract. It is for plugin authors, and for the maintainer who keeps the contract stable and
 cuts releases.
 
 This repository is Bloem's source of truth for the plugin authoring contract. Bloem plugin authors pin tagged semver releases. Bloem Server currently pins the upstream
 Silo SDK for public capabilities and owns its separate native-storage bindings; see
-[compatibility and release lineage](docs/compatibility.md#release-lineage). Local multi-repo workspaces may use `go.work` or a temporary
+[compatibility with Silo's SDK](docs/compatibility.md#silo-sdk-compatibility). Local multi-repo workspaces may use `go.work` or a temporary
 `replace`, but CI and release builds resolve the SDK from a published module tag.
 
-A few identifiers keep spellings from the project's origins because servers and plugins already
+A few identifiers keep spellings from Silo, the project this SDK builds on, because servers and plugins already
 speak them: the Go module path `github.com/Bloem-Studios/bloem-plugin-sdk`, the protobuf package
 `silo.plugin.v1`, the manifest field `silo_api_version` and the handshake cookie
 `SILO_PLUGIN=silo-rpc-plugin-v1`. They are pinned by guard tests and must be typed exactly as shown.
@@ -27,7 +27,7 @@ speak them: the Go module path `github.com/Bloem-Studios/bloem-plugin-sdk`, the 
 - A `manifest` subcommand on every plugin binary that prints the manifest with the real checksum and exits, so a server can introspect a plugin without launching it.
 - Self-describing binaries: the SHA-256 of the running executable is computed at start-up and written into the manifest, so a package is installable without external repository state.
 - `runtimedefault`: an embeddable `Runtime` server with `BindHostBroker` already wired.
-- New gRPC services are added through `ServeManifestOption` values (for example `WithWatchSyncDeviceAuthorization`), never by changing the `CapabilityServers` shape, so plugins written for v0.12 keep compiling.
+- New gRPC services are added through `ServeManifestOption` values (for example `WithWatchSyncDeviceAuthorization`), never by changing the `CapabilityServers` shape, so existing plugins keep compiling.
 - Examples for scheduled tasks, host callbacks and network access, a synthetic native-storage fixture, and a compat probe that proves a server can launch an SDK-built binary.
 
 **Manifest and settings**
@@ -76,7 +76,7 @@ it supports `capabilities: []` and requires a host-approved artifact through sep
    ```sh
    mkdir hello-plugin && cd hello-plugin
    go mod init example.com/hello-plugin
-   go get github.com/Bloem-Studios/bloem-plugin-sdk@v0.24.0
+   go get github.com/Bloem-Studios/bloem-plugin-sdk@latest
    ```
 
 2. **Write `manifest.json`** with `plugin_id`, `version`, `"checksum": "__CHECKSUM__"`,
@@ -285,8 +285,8 @@ fails, the host commits no other response data.
 
 Device-code plugins register both `WatchSyncProvider` and the separate
 `WatchSyncDeviceAuthorizationService`. Keeping device authorization in a
-second service preserves source compatibility for v0.12 Go providers that
-implemented `WatchSyncProviderServer` directly. Register it without changing
+second service preserves source compatibility for Go providers that
+implement `WatchSyncProviderServer` directly. Register it without changing
 the released `CapabilityServers` shape:
 
 ```go
@@ -393,7 +393,7 @@ make proto                           # regenerate protobuf code (needs protoc; i
 - [docs/admin-guide.md](docs/admin-guide.md) — for the SDK maintainer and server operator: repository layout, building and regenerating protobuf code, the guard tests, CI and the release workflow, versioning, plugin packaging and installation, the process and security model, troubleshooting.
 - [docs/user-guide.md](docs/user-guide.md) — for plugin authors: from an empty directory to an installed plugin, then the reference for the manifest, settings, every capability, the host client, helpers, testing, packaging and versioning.
 - [docs/compatibility.md](docs/compatibility.md) — the compatibility boundary and versioning rules for the SDK and its consumers.
-- [docs/private-release.md](docs/private-release.md) — the public GitHub release and immutable-tag procedure (historical filename).
+- [docs/private-release.md](docs/private-release.md) — the public GitHub release and immutable-tag procedure.
 - [docs/auth-provider.md](docs/auth-provider.md) — typed sign-in, account checks and overlay identity.
 - [docs/storage-provider.md](docs/storage-provider.md) — separate native-storage protocol and host admission boundary.
 - [docs/runtime-host.md](docs/runtime-host.md) — the `RuntimeHost.v1` RPC reference.
